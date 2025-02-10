@@ -2,3 +2,4 @@ Django>=5.1.5,<5.2
 djangorestframework>=3.15.2,<3.16 
 psycopg2>=2.9.10,<2.10
 drf-spectacular<=0.28
+djangorestframework-simplejwt[crypto]

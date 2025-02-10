@@ -111,12 +111,14 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Rest framework authentication
 # https://www.django-rest-framework.org/api-guide/authentication/
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
-    ]
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema'
 }
 
 # Internationalization
