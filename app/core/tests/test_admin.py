@@ -23,7 +23,7 @@ class AdminSiteTests(TestCase):
         self.user = get_user_model().objects.create_user(
             email='user@example.com',
             password='testcase123',
-            name='Test User'
+            firstname='Test User'
         )
 
     def test_users_list(self):
@@ -33,7 +33,7 @@ class AdminSiteTests(TestCase):
 
         print(f"User list page response: {res.status_code}")
 
-        self.assertContains(res, self.user.name)
+        self.assertContains(res, self.user.firstname)
         self.assertContains(res, self.user.email)
 
     def test_edit_user_page(self):
