@@ -40,9 +40,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'core',
     'user',
+    'event',
+    'djmoney',
     'drf_spectacular', 
     'rest_framework',
     'rest_framework.authtoken',
+    'phonenumber_field',
+    'django_countries',
 ]
 
 MIDDLEWARE = [
