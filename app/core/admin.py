@@ -1,25 +1,27 @@
 """
 Django admin customisation
 """
+from core.models import (
+     User, Hospital, Event, Doctor,
+)
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import User
 
 class CustomUserAdmin(BaseUserAdmin):
     """Define the admin pages for users"""
     
     # Fields to display in the user list view
-    list_display = ('email', 'name', 'is_active')
+    list_display = ('email', 'firstname', 'surname','is_active')
     
     # Filters available in the user list view
     list_filter = ('is_active',)
     
     # Fields that can be searched in the user list view
-    search_fields = ('email', 'name')
+    search_fields = ('email', 'firstname', 'surname')
     
     # Default ordering of the user list view
-    ordering = ('email',)
+    ordering = ('surname','firstname', 'email',)
     
     # Horizontal filters (not used here)
     filter_horizontal = ()
@@ -27,7 +29,7 @@ class CustomUserAdmin(BaseUserAdmin):
     # Fieldsets for the user detail view
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('name',)}),
+        ('Personal info', {'fields': ('firstname', 'surname', 'phone_number')}),
         ('Permissions', {'fields': (
             'is_active',
             'is_staff',
@@ -40,8 +42,9 @@ class CustomUserAdmin(BaseUserAdmin):
         None, {
             'classes': ('wide',),
             'fields': (
+                'firstname',
+                'surname',
                 'email',
-                'name',
                 'password1',
                 'password2',
                 'is_active',
@@ -72,6 +75,13 @@ class CustomUserAdmin(BaseUserAdmin):
         extra_context['custom_message'] = message
 
         return super().changelist_view(request, extra_context=extra_context)
+       
+
+class HospitalAdmin (admin.ModelAdmin):
+    list_display = ('name', )  
 
 # Register the custom user admin with the User model
 admin.site.register(User, CustomUserAdmin)
+admin.site.register(Hospital, HospitalAdmin)
+admin.site.register(Event)
+admin.site.register(Doctor)
