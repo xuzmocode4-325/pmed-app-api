@@ -14,7 +14,7 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'upated_at']
 
 
-class RecipeDetailSerializer(EventSerializer):
+class EventDetailSerializer(EventSerializer):
     """Serializer for recipe detail view"""
 
     class Meta(EventSerializer.Meta):
