@@ -7,7 +7,7 @@ from rest_framework.routers import DefaultRouter
 
 
 router = DefaultRouter()
-router.register('eventss', views.EventViewSet)
+router.register('events', views.EventViewSet)
 
 app_name = 'event'
 
