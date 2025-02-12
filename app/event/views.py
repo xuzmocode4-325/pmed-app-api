@@ -10,18 +10,22 @@ from . import serializers
 
 
 class EventViewSet(viewsets.ModelViewSet):
-    """View for recipe API management"""
-    serializer_class = serializers.RecipeDetailSerializer
+    """View for event API management"""
+    serializer_class = serializers.EventDetailSerializer
     queryset = Event.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Retrieve recipes for authenticated users"""
+        """Retrieve events for authenticated users"""
+        if self.request.user.is_staff:
+            # If the user is a staff member, return all events
+            return self.queryset.order_by('-id')
+        # Otherwise, return only the events created by the user
         return self.queryset.filter(user=self.request.user).order_by('-id')
     
     def get_serializer_class(self):
-        if self.action  == 'list':
+        if self.action == 'list':
             return serializers.EventSerializer
         
         return self.serializer_class
