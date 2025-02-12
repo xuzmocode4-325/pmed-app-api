@@ -132,7 +132,7 @@ class PrivateUserApiTest(TestCase):
     """Test API features that require authentication"""
 
     def setUp(self):
-        """Set up the test client and authenticate user for private API tests."""
+        """Set test client and auth user for private API tests."""
         self.user = create_user(
             email='test@example.com',
             password='examplepass123',
@@ -149,7 +149,7 @@ class PrivateUserApiTest(TestCase):
             'firstname': self.user.firstname,
             'surname': self.user.surname,
             'email': self.user.email,
-            'phone_number':self.user.phone_number
+            'phone_number': self.user.phone_number
         })
         print(f"Profile retrieval test: {res.status_code}")
 
