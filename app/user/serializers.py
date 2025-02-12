@@ -23,7 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
             'min_length': 5
         }}
         """Meta class to specify the model to be serialized and additional options.
-        
+
         Attributes:
             model: The model class to be serialized.
             fields: List of fields to be included in the serialization.
@@ -31,24 +31,24 @@ class UserSerializer(serializers.ModelSerializer):
                 - 'password': Ensures the password is write-only and has a minimum length of 5.
         """
 
-    def create(self, validated_data:dict):
+    def create(self, validated_data: dict):
         """Create and return a user with encrypted password.
-        
+
         Args:
             validated_data (dict): The validated data containing user information.
-        
+
         Returns:
             User: A newly created user instance with an encrypted password.
         """
         return get_user_model().objects.create_user(**validated_data)
 
-    def update(self, instance, validated_data:dict):
+    def update(self, instance, validated_data: dict):
         """Update and return an existing user, setting the password correctly if provided.
-        
+
         Args:
             instance (User): The existing user instance to be updated.
-            validated_data (dict): The validated data containing updated user information.
-        
+            validated_data (dict): The validated data containing user information.
+
         Returns:
             User: The updated user instance.
         """
