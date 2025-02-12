@@ -131,19 +131,19 @@ class Doctor(models.Model):
 
 class Event(models.Model):
     """Model to store all events"""
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         get_user_model(),
         on_delete=models.SET_NULL,  # Change this line
         related_name='event',
         null=True,  # Allow the user field to be nullable
         blank=True  # Allow the user field to be optional in forms
     )
-    doctor = models.OneToOneField(
+    doctor = models.ForeignKey(
         'Doctor',
         on_delete=models.CASCADE,
         related_name='event'
     )
-    hospital = models.OneToOneField(
+    hospital = models.ForeignKey(
         'Hospital',
         on_delete=models.CASCADE,
         related_name='event'
@@ -156,4 +156,3 @@ class Event(models.Model):
 
     def __str__(self):
         return f"Event {self.id} (Dr. {self.doctor.user.surname})"
-
