@@ -83,18 +83,12 @@ class ModelAdminTests(TestCase):
             surname='Doe',
             email='john.doe@example.com',
             phone_number='+1234567890',
-            hospital=self.hospital
-        )
-        self.user_without_hospital = get_user_model().objects.create(
-            firstname='Jane',
-            surname='Doe',
-            email='jane.doe@example.com',
-            phone_number='+1234567890'
         )
         self.doctor = Doctor.objects.create(
             user=self.user,
             practice_number=123456,
-            comments='Experienced in cardiology.'
+            comments='Experienced in cardiology.',
+            hospital=self.hospital
         )
     def test_hospitals_listed(self):
         """Test that hospitals are listed on the admin page"""
@@ -123,35 +117,25 @@ class ModelAdminTests(TestCase):
         self.assertEqual(self.user.surname, 'Doe')
         self.assertEqual(self.user.email, 'john.doe@example.com')
         self.assertEqual(self.user.phone_number, PhoneNumber.from_string('+1234567890'))
-        self.assertEqual(self.user.hospital, self.hospital)
 
     def test_user_str(self):
         """Test the string representation of the user."""
         expected_str = 'John Doe'
         self.assertEqual(str(self.user), expected_str)
 
-    def test_user_without_hospital(self):
-        """Test creating a user without a hospital."""
-        user_without_hospital = get_user_model().objects.create(
-            firstname='Jane',
-            surname='Smith',
-            email='jane.smith@example.com',
-            phone_number='+0987654321'
-        )
-        self.assertIsNone(user_without_hospital.hospital)
-
     def test_doctor_creation(self):
         """Test that a doctor instance is created successfully."""
         self.assertEqual(self.doctor.user, self.user)
         self.assertEqual(self.doctor.practice_number, 123456)
         self.assertEqual(self.doctor.comments, 'Experienced in cardiology.')
+        self.assertEqual(self.doctor.hospital, self.hospital)
     
     def test_doctor_creation_no_hospital_error(self):
         """Test that a doctor instance is created successfully."""
 
         with self.assertRaises(ValidationError):
             Doctor.objects.create(
-                user=self.user_without_hospital,
+                user=self.user,
                 practice_number=123456,
                 comments='Experienced in neurology.'
         )
@@ -164,11 +148,11 @@ class ModelAdminTests(TestCase):
     def test_create_event(self):
         "Test creating an event is successful"
         event = Event.objects.create(
-            user=self.admin_user,
+            created_by=self.user,
             doctor=self.doctor,
-            hospital=self.hospital,
         )
 
+        self.assertIsNotNone(event.created_by)
         self.assertEqual(str(event), f"Event {event.id} (Dr. {event.doctor.user.surname})")
 
 
