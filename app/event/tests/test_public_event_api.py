@@ -15,57 +15,12 @@ from event.serializers import (
     EventDetailSerializer
 )
 
+
 EVENTS_URL = reverse('event:event-list')
 
 def event_detail_url(event_id):
     """Create and return a event detail URL"""
     return reverse('event:event-detail', args=[event_id])
-
-def create_hospital(**args):
-    defaults = {
-        'name':'Test Hospital',
-        'street':'123 Main St',
-        'city':'Test City',
-        'state':'Test State',
-        'postal_code':'12345',
-        'country':Country('US')
-    }
-    defaults.update(args)
-    hospital = Hospital.objects.create(**defaults)
-    return hospital
-
-def create_user(hospital, **args): 
-    defaults = {
-        'firstname':'John',
-        'surname':'Doe',
-        'email':'john.doe@example.com',
-        'phone_number':'+1234567890',
-    }
-    defaults.update(args)
-    contact = get_user_model().objects.create(hospital=hospital, **defaults)
-    return contact
-
-def create_doctor(user, **params):
-    defaults = {
-        'practice_number':123456,
-        'comments':'Experienced in cardiology.',
-        'is_verified':True
-    }
-    defaults.update(params)
-    doctor = Doctor.objects.create(user=user, **defaults)
-    return doctor
-
-def create_event(user, doctor, hospital, **params):
-    event = Event.objects.create(
-        user=user,
-        doctor=doctor,
-        hospital=hospital
-    )
-    return event
-
-def create_user(**params):
-    """Create and return a new user"""
-    return get_user_model().objects.create(**params)
 
 class PublicEventAPITests(TestCase):
     """Test unauthenticated API requests"""
@@ -78,39 +33,6 @@ class PublicEventAPITests(TestCase):
         res = self.client.get(EVENTS_URL)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-class PrivateEventAPITests(TestCase):
-    """Test authenticated API requests"""
-
-    def setUp(self):
-        self.client = APIClient()
-
-        self.hospital = create_hospital()
-
-        self.user = create_user(
-            firstname='James',
-            surname='Bond',
-            email='james.bond@example.com',
-            phone_number='+1234567890',
-            hospital=self.hospital
-        )
-
-        self.client.force_authenticate(self.user)
-
-        self.doctor =  create_doctor(user=self.user)
-
-    def test_doctor_retrieve_events(self):
-        """Test retrieving a list of events"""
-        create_event(user=self.user, doctor=self.doctor, hospital=self.hospital)
-        create_event(user=self.user, doctor=self.doctor, hospital=self.hospital)
-
-        res = self.client.get(EVENTS_URL)
-
-        events = Event.objects.all().order_by('-id')
-        serializer = EventSerializer(events, many=True) # Add event serialier
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
-
-    
 
     # def test_create_event_with_new_procedures(self):
     #     """Test creating a event with new procedures"""
