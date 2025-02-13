@@ -62,6 +62,14 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
 
         return user
+    
+
+
+class EventManager(models.Manager):
+    def create_event(self, user, **kwargs):
+        """Create an event with the created_by field set to the user."""
+        kwargs['created_by'] = user
+        return self.create(**kwargs)
 
 
 
@@ -88,13 +96,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     phone_number = PhoneNumberField(null=True, blank=True)
-    hospital = models.ForeignKey(
-        Hospital,
-        on_delete=models.CASCADE,
-        related_name='contacts',
-        null=True,  # Allow the hospital field to be nullable
-        blank=True  # Allow the hospital field to be optional in forms
-    )
+   
 
     objects = UserManager()
 
@@ -113,6 +115,13 @@ class Doctor(models.Model):
         on_delete=models.CASCADE,
         related_name='doctor'
     )
+    hospital = models.ForeignKey(
+        Hospital,
+        on_delete=models.CASCADE,
+        related_name='doctors',
+        null=True,  # Allow the hospital field to be nullable
+        blank=True  # Allow the hospital field to be optional in forms
+    )
     practice_number = models.IntegerField(unique=True)
     comments = models.TextField()
     updated = models.DateTimeField(auto_now=True)
@@ -120,7 +129,7 @@ class Doctor(models.Model):
 
     def save(self, *args, **kwargs):
         """Override save method to ensure contact has a hospital."""
-        if self.user.hospital is None:
+        if self.hospital is None:
             raise ValidationError("The doctor must be associated with a hospital.")
         if self.user.firstname is None:
             raise ValidationError("The doctor must be assigned a firstname.")
@@ -135,33 +144,28 @@ class Event(models.Model):
     """Model to store all events"""
     created_by = models.ForeignKey(
         get_user_model(),
-        on_delete=models.SET_NULL,  # Change this line
+        on_delete=models.DO_NOTHING,  # Change this line
         related_name='event',
-        null=True,  # Allow the user field to be nullable
-        blank=True  # Allow the user field to be optional in forms
     )
     doctor = models.ForeignKey(
         'Doctor',
         on_delete=models.CASCADE,
         related_name='event'
     )
-    hospital = models.ForeignKey(
-        'Hospital',
-        on_delete=models.CASCADE,
-        related_name='event'
-    )
-   
+
     description = models.TextField(null=True, blank=True)
     # Add additional fields for the Event model as needed
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(
         get_user_model(),
-        on_delete=models.SET_NULL,
+        on_delete=models.DO_NOTHING,
         related_name='modified_events',
         null=True,
         blank=True
     )
+
+    objects = EventManager()
 
     def save(self, *args, **kwargs):
         """Override save method to update the modified_by field."""
