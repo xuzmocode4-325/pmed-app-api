@@ -90,3 +90,31 @@ In essence, this configuration tells `flake8` to skip checking the style and pot
     *    `--rm`: removes the container
     *    `app`: the name of the service
     *    `sh -c`: passes in a shell command
+
+
+## User API Features
+
+- Anyone from the public can create a profile
+- Only one account per email address
+- Password must follow certain rules, can be configured
+- Access to a profile requires registration and authentication
+- Authenticated users can update profile information
+- Users can be created via the admin portal
+- Admin / staff profiles can view all other profile details
+- Non admin users can apply for a doctor profile
+- Doctor profiles can manage their own events
+- Doctor profiles require approval by an admin user
+
+
+## Event API Features
+
+- Allows authenticated and verified doctors to create, edit, update or delete events created on their own profiles
+- Allows staff users to create, edit, update and delete events for all profiles
+- Denies any and all requests from unauthenticated users, non staff profiles and authenticated but unverified doctors and users
+
+## Procedures API Features
+
+
+
+
+
