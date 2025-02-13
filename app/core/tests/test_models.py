@@ -28,7 +28,6 @@ class UserModelTests(TestCase):
 
         self.assertEqual(user.email, email)
         self.assertTrue(user.check_password(password))
-        print(f"User created with email: successful")
 
     def test_new_user_email_mormalized(self):
         """Test email normalization for new users."""
@@ -43,13 +42,11 @@ class UserModelTests(TestCase):
         for email, expected in sample_emails:
             user = get_user_model().objects.create_user(email, 'sample123')
             self.assertEqual(user.email, expected)
-        print(f"User emails normalized: successful")
 
     def test_new_user_without_email_raises_error(self):
         """Test creating a new user without an email raises a value error."""
         with self.assertRaises(ValueError):
             get_user_model().objects.create_user('', 'test123')
-        print(f"New user with no email raises error: successful")
 
     def test_create_superuser(self):
         """Test creating a superuser"""
@@ -60,7 +57,6 @@ class UserModelTests(TestCase):
 
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
-        print(f"Super user creation test: successful")
 
 
 class ModelAdminTests(TestCase):
@@ -107,7 +103,6 @@ class ModelAdminTests(TestCase):
 
         self.assertContains(res, self.hospital.name)
         self.assertEqual(res.status_code, 200)
-        print(f"Test hospital is listed {res.status_code}")
 
     def test_hospital_detail_page(self):
         """Test that the hospital detail page works"""
@@ -116,13 +111,11 @@ class ModelAdminTests(TestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, self.hospital.name)
-        print(f"Test hospital detail page works {res.status_code}")
 
     def test_hospital_str(self):
         """Test the string representation of the hospital"""
         expected_str = 'Test Hospital, Test City, Test State, US'
         self.assertEqual(str(self.hospital), expected_str)
-        print(f" Expected string matches")
 
     def test_user_creation(self):
         """Test that a user instance is created successfully."""
