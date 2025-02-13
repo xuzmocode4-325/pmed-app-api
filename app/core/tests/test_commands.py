@@ -21,7 +21,6 @@ class CommandTests(SimpleTestCase):
 
         # Assert that the check was called once with the default database
         patched_check.assert_called_once_with(databases=['default'])
-        print(f"Wait for db test: successful")
 
     @patch('time.sleep')
     def test_wait_for_db_delay(self, patched_sleep, patched_check):
@@ -39,4 +38,4 @@ class CommandTests(SimpleTestCase):
 
         # Assert that the final call was made with the default database
         patched_check.assert_called_with(databases=['default'])
-        print(f"Wait for db delay test test: successful")
+
