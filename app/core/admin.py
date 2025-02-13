@@ -80,8 +80,13 @@ class CustomUserAdmin(BaseUserAdmin):
 class HospitalAdmin (admin.ModelAdmin):
     list_display = ('name', )  
 
+
+class EventAdmin (admin.ModelAdmin):
+    readonly_fields = ['created_by', 'created_at', 'updated_by', 'updated_at']
+    pass
+
 # Register the custom user admin with the User model
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Hospital, HospitalAdmin)
-admin.site.register(Event)
+admin.site.register(Event, EventAdmin)
 admin.site.register(Doctor)
