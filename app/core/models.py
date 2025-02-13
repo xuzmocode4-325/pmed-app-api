@@ -113,7 +113,7 @@ class Doctor(models.Model):
         on_delete=models.CASCADE,
         related_name='doctor'
     )
-    practice_number = models.IntegerField()
+    practice_number = models.IntegerField(unique=True)
     comments = models.TextField()
     updated = models.DateTimeField(auto_now=True)
     is_verified = models.BooleanField(default=False)
@@ -126,12 +126,14 @@ class Doctor(models.Model):
             raise ValidationError("The doctor must be assigned a firstname.")
         if self.user.surname is None:
             raise ValidationError("The doctor must be assigned a surname.")
+        if self.practice_number is None:
+            raise ValidationError("The doctor must be assigned a practice number.")
         super().save(*args, **kwargs)
 
 
 class Event(models.Model):
     """Model to store all events"""
-    user = models.ForeignKey(
+    created_by = models.ForeignKey(
         get_user_model(),
         on_delete=models.SET_NULL,  # Change this line
         related_name='event',
@@ -153,6 +155,19 @@ class Event(models.Model):
     # Add additional fields for the Event model as needed
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.SET_NULL,
+        related_name='modified_events',
+        null=True,
+        blank=True
+    )
+
+    def save(self, *args, **kwargs):
+        """Override save method to update the modified_by field."""
+        if 'request' in kwargs:
+            self.modified_by = kwargs.pop('request').user
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Event {self.id} (Dr. {self.doctor.user.surname})"
