@@ -2,6 +2,7 @@
 Database models.
 """
 from django.db import models
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import (
@@ -175,3 +176,17 @@ class Event(models.Model):
 
     def __str__(self):
         return f"Event {self.id} (Dr. {self.doctor.user.surname})"
+
+
+class Procedure(models.Model):
+    """Tag for filtering recipes"""
+    name = models.CharField(max_length=255)
+    event = models.ForeignKey(
+        'Event',
+        on_delete=models.CASCADE,
+        related_name='procedure'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
