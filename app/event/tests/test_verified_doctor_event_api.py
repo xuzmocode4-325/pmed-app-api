@@ -15,7 +15,7 @@ from event.serializers import (
 )
 
 from .helper_for_event_tests import (
-    create_hospital, create_user, create_doctor, create_event
+    create_hospital, create_user, create_doctor, create_event,
 )
 
 EVENTS_URL = reverse('event:event-list')
@@ -23,6 +23,8 @@ EVENTS_URL = reverse('event:event-list')
 def event_detail_url(event_id):
     """Create and return a event detail URL"""
     return reverse('event:event-detail', args=[event_id])
+
+
 
 class VerifiedDoctorEventApiTests(TestCase):
     """Test authenticated API requests"""
@@ -64,29 +66,38 @@ class VerifiedDoctorEventApiTests(TestCase):
 
     def test_event_list_limited_user(self):
         """Test list of events is limited to authenticated user"""
+        # Create the hospital instance first
         other_hospital = create_hospital(
             **{
-            'name':'Other Test Hospital',
-            'street':'123 Main St',
-            'city':'Other Test City',
-            'state':'Test State',
-            'postal_code':'12345',
-            'country':Country('US')
+                'name': 'Other Test Hospital',
+                'street': '123 Main St',
+                'city': 'Other Test City',
+                'state': 'Test State',
+                'postal_code': '12345',
+                'country': Country('US')
             }
         )
-        other_user = create_user(**{
-            'firstname':'Jack',
-            'surname':'Black',
-            'email':'jack.black@example.com',
-            'phone_number':'+1234567890',
-        })
-        other_doctor = create_doctor(
-            user=other_user, hospital=other_hospital, 
+
+        # Create the user instance next
+        other_user = create_user(
             **{
-            'practice_number': 4599067,
-            'comments': 'Experienced in cardiology.',
-            'is_verified': True
-        })
+                'firstname': 'Jack',
+                'surname': 'Black',
+                'email': 'black.jack@example.com',
+                'phone_number': '+1234567890',
+            }
+        )
+
+        # Finally, create the doctor instance, referencing the previously created hospital and user
+        other_doctor = create_doctor(
+            user=other_user,
+            hospital=other_hospital,
+            **{
+                'practice_number': 4599067,
+                'comments': 'Experienced in cardiology.',
+                'is_verified': True
+            }
+        )
         create_event(
             created_by=other_user,
             doctor=other_doctor, 
@@ -116,7 +127,7 @@ class VerifiedDoctorEventApiTests(TestCase):
         serializer = EventDetailSerializer(event)
         self.assertEqual(res.data, serializer.data)
 
-    def test_create_recipe(self):
+    def test_create_event(self):
         """Test creating an event via API"""
         payload = {
             'doctor': int(self.doctor.id),
@@ -133,3 +144,94 @@ class VerifiedDoctorEventApiTests(TestCase):
             else:
                 self.assertEqual(getattr(event, k), v)
         self.assertEqual(event.created_by, self.user)
+
+
+    def test_partial_update(self):
+        """Test partial update of a event"""
+    
+        event = create_event(
+            created_by=self.user,
+            doctor=self.doctor,
+            description='Test Event Description',
+        )
+
+        payload = {'description': 'New Event Description'}
+        url = event_detail_url(event.id)
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        event.refresh_from_db()
+        self.assertEqual(event.description, payload['description'])
+        self.assertEqual(event.created_by, self.user)
+        self.assertEqual(event.updated_by, self.user)
+
+    def test_update_user_returns_error(self):
+        """Test changing the event user results in an error"""
+        new_user = create_user(email='user2@example.com', password='test12434')
+        event = create_event(created_by=self.user, doctor=self.doctor)
+
+        payload = {'created_by': new_user.id}
+        url = event_detail_url(event.id)
+
+        self.client.patch(url, payload)
+        event.refresh_from_db()
+
+        self.assertEqual(event.created_by, self.user)
+
+    def test_delete_event(self):
+        """Test deleting a event successful"""
+
+        event = create_event(created_by=self.user, doctor=self.doctor)
+
+        url = event_detail_url(event.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Event.objects.filter(id=event.id).exists())
+
+    def test_delete_other_users_event_error(self):
+       # Create the hospital instance first
+        other_hospital = create_hospital(
+            **{
+                'name': 'Other Test Hospital',
+                'street': '123 Main St',
+                'city': 'Other Test City',
+                'state': 'Test State',
+                'postal_code': '12345',
+                'country': Country('US')
+            }
+        )
+
+        # Create the user instance next
+        other_user = create_user(
+            **{
+                'firstname': 'Jack',
+                'surname': 'Black',
+                'email': 'black.jack@example.com',
+                'phone_number': '+1234567890',
+            }
+        )
+
+        # Finally, create the doctor instance, 
+        # referencing the previously created hospital and user
+        other_doctor = create_doctor(
+            user=other_user,
+            hospital=other_hospital,
+            **{
+                'practice_number': 4599067,
+                'comments': 'Experienced in cardiology.',
+                'is_verified': True
+            }
+        )
+                
+
+        event = create_event(
+            created_by=other_user,
+            doctor=other_doctor, 
+        )
+
+        url = event_detail_url(event.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(Event.objects.filter(id=event.id).exists())

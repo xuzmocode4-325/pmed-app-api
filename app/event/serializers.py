@@ -21,9 +21,15 @@ class EventSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """Ensure that only verified doctors can be associated with events."""
-        doctor = attrs.get('doctor')
-        if not doctor.is_verified:
-            raise serializers.ValidationError("The doctor must be verified to be associated with an event.")
+        if self.instance is None:
+            doctor = attrs.get('doctor')
+            if doctor and not doctor.is_verified:
+                raise serializers.ValidationError("The doctor must be verified to be associated with an event.")
+        else:
+            # For updates, use the existing doctor if not provided in attrs
+            doctor = attrs.get('doctor', self.instance.doctor)
+            if doctor and not doctor.is_verified:
+                raise serializers.ValidationError("The doctor must be verified to be associated with an event.")
         return attrs
 
     def create(self, validated_data):

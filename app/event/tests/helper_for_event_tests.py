@@ -48,3 +48,5 @@ def create_event(created_by, doctor, **params):
 def create_user(**params):
     """Create and return a new user"""
     return get_user_model().objects.create(**params)
+
+
