@@ -24,7 +24,7 @@ RUN python -m venv /py && \
     adduser \
         --disabled-password \
         --no-create-home \ 
-        app-user   
+        app-user
 
 ENV PATH="/py/bin:$PATH"
 
