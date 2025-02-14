@@ -15,7 +15,7 @@ from event.serializers import (
 )
 
 from .helper_for_event_tests import (
-    create_hospital, create_user, create_doctor, create_event
+    create_event, create_random_entities
 )
 
 EVENTS_URL = reverse('event:event-list')
@@ -31,27 +31,11 @@ class UnverifiedDoctorEventApiTests(TestCase):
     def setUp(self):
         """Create and authenticate an unverified doctor."""
         self.client = APIClient()
-
-        self.hospital = create_hospital()
-
-        self.user = create_user(**{
-            'firstname': 'John',
-            'surname': 'Doe',
-            'email': 'john.doe@example.com',
-            'phone_number': '+1234567890',
-        })
-        self.doctor = create_doctor(
-            user=self.user, 
-            hospital=self.hospital,                         
-            **{
-            'practice_number': 4599067,
-            'comments': 'Experienced in cardiology.',
-            'is_verified': False
-        })
+        self.user, self.hospital, self.doctor, = create_random_entities(verified=False)
         self.client.force_authenticate(self.user)
-
+        
     def test_unverified_doctor_event_returns_error(self):
-        """Test that unverified doctors return errors."""
+        """Test that unverified doctors errors."""
     
         create_event(
             created_by=self.user,
