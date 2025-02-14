@@ -38,9 +38,9 @@ class EventViewSet(viewsets.ModelViewSet):
         """Retrieve events for authenticated users"""
         if self.request.user.is_staff:
             # If the user is a staff member, return all events
-            return self.queryset.order_by('-id')
+            return self.queryset.order_by('-created_at')
         # Otherwise, return only the events created by the user
-        return self.queryset.filter(created_by=self.request.user).order_by('-id')
+        return self.queryset.filter(doctor=self.request.user.doctor).order_by('-created_at')
 
     def get_serializer_class(self):
         if self.action == 'list':
