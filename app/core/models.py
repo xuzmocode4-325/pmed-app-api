@@ -76,7 +76,7 @@ class EventManager(models.Manager):
 
 class Hospital(models.Model):
     """Model to store hospital names"""
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     street = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
@@ -110,7 +110,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Doctor(models.Model):
     """Model to store doctor information"""
     user = models.OneToOneField(
-        User, 
+        get_user_model(), 
         null=True,
         blank=True,
         on_delete=models.CASCADE,
@@ -118,7 +118,7 @@ class Doctor(models.Model):
     )
     hospital = models.ForeignKey(
         Hospital,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='doctors',
         null=True,  # Allow the hospital field to be nullable
         blank=True  # Allow the hospital field to be optional in forms
@@ -127,6 +127,9 @@ class Doctor(models.Model):
     comments = models.TextField()
     updated = models.DateTimeField(auto_now=True)
     is_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Dr. {self.user.firstname[0]}. {self.user.surname} - {self.practice_number}"
 
     def save(self, *args, **kwargs):
         """Override save method to ensure contact has a hospital."""
@@ -177,16 +180,35 @@ class Event(models.Model):
     def __str__(self):
         return f"Event {self.id} (Dr. {self.doctor.user.surname})"
 
-
 class Procedure(models.Model):
     """Tag for filtering recipes"""
-    name = models.CharField(max_length=255)
+    patient_name = models.CharField(max_length=255)
+    patient_surname = models.CharField(max_length=255)
+    patient_age = models.PositiveSmallIntegerField()
+    case_number = models.CharField(max_length=64, unique=True)
     event = models.ForeignKey(
         'Event',
         on_delete=models.CASCADE,
         related_name='procedure'
     )
+    description = models.TextField()
+    ward = models.PositiveSmallIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        get_user_model(), 
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        related_name='procedure',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        get_user_model(), 
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        related_name='moified_procedures',
+    )
 
     def __str__(self):
-        return self.name
+        return f"Case {self.case_number} - for {self.patient_name[0]}. {self.patient_surname}"
