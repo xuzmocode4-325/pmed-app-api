@@ -3,7 +3,20 @@ Serializers for events APIs
 """
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
-from core.models import Event, Doctor, Hospital
+from core.models import Event, Doctor, Hospital, Procedure
+
+
+class ProcedureSerializer(serializers.ModelSerializer):
+    """Serializer for procedures"""
+
+    class Meta:
+        model = Procedure
+        fields = ['id', 'patient_name', 'patient_surname',
+            'patient_age', 'case_number', 'event', 'description', 
+            'ward']
+        read_only_fields = [
+            'id', 'created_at', 'updated_at', 'created_by', 'updated_by',
+        ]
 
 
 class EventSerializer(serializers.ModelSerializer):
