@@ -105,7 +105,7 @@ class StaffUserEventApiTests(TestCase):
         """Test getting event detail"""
         u1, h1, d1 = create_random_entities()
         event = create_event(
-            created_by=self.user,
+            created_by=u1,
             doctor=d1, 
         )
 
@@ -146,13 +146,9 @@ class StaffUserEventApiTests(TestCase):
         """Test partial update of a event"""
 
         u1, h1, d1 = create_random_entities()
-        create_event(
-            created_by=u1,
-            doctor=d1, 
-        )
-       
+    
         event = create_event(
-            created_by=self.user,
+            created_by=u1,
             doctor=d1,
             description='Test Event Description',
         )
@@ -167,7 +163,7 @@ class StaffUserEventApiTests(TestCase):
         self.assertEqual(event.created_by, self.user)
         self.assertEqual(event.updated_by, self.user)
 
-    def test_update_user_returns_error(self):
+    def test_update_user_returns_error_one(self):
         """Test changing the event user results in an error"""
         u1, h1, d1 = create_random_entities()
         event = create_event(
@@ -183,7 +179,23 @@ class StaffUserEventApiTests(TestCase):
 
         self.assertEqual(event.created_by, self.user)
 
-    def test_staff_delete_event(self):
+    def test_update_user_returns_error_two(self):
+        """Test changing the event user results in an error"""
+        u1, h1, d1 = create_random_entities()
+        event = create_event(
+            created_by=u1,
+            doctor=d1, 
+        )
+
+        payload = {'created_by': self.user.id}
+        url = event_detail_url(event.id)
+
+        self.client.patch(url, payload)
+        event.refresh_from_db()
+
+        self.assertEqual(event.created_by, self.user)
+
+    def test_staff_delete_own_event(self):
         """Test deleting a event successful"""
         u1, h1, d1 = create_random_entities()
         event = create_event(
@@ -191,15 +203,13 @@ class StaffUserEventApiTests(TestCase):
             doctor=d1, 
         )
 
-        event = create_event(created_by=self.user, doctor=d1)
-
         url = event_detail_url(event.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Event.objects.filter(id=event.id).exists())
 
-    def test_delete_other_users_event_error(self):
+    def test_staff_delete_other_users_event(self):
        # Create the hospital instance first
         u1, h1, d1 = create_random_entities()
                 

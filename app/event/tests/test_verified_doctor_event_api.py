@@ -126,6 +126,9 @@ class VerifiedDoctorEventApiTests(TestCase):
         self.assertEqual(event.created_by, self.user)
         self.assertEqual(event.updated_by, self.user)
 
+
+    #def test_full_update()
+
     def test_update_user_returns_error(self):
         """Test changing the event user results in an error"""
         u1, h1, d1 =  create_random_entities()
