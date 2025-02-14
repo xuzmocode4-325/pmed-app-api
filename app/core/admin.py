@@ -78,15 +78,51 @@ class CustomUserAdmin(BaseUserAdmin):
        
 
 class HospitalAdmin (admin.ModelAdmin):
-    list_display = ('name', )  
+    list_display = ('name', 'city', 'country',)  
 
 
 class EventAdmin (admin.ModelAdmin):
+    # Fields to display in the user list view
+    list_display = ('get_doctor', 'get_hospital', 'description', )
     readonly_fields = ['created_by', 'created_at', 'updated_by', 'updated_at']
-    pass
+
+    def get_hospital(self, obj):
+        """Return the first name of the associated user."""
+        return obj.doctor.hospital
+    get_hospital.short_description = 'Hospital'
+
+    def get_doctor(self, obj):
+        """Return the first name of the associated user."""
+        return f"Dr {obj.doctor.user.surname}"
+    get_doctor.short_description = 'Doctor'
+
+    def save_model(self, request, obj, form, change):
+        """Override save_model to set created_by to the current user."""
+        if not change or not obj.created_by:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+class DoctorAdmin(admin.ModelAdmin):
+    list_display = ('get_firstname', 'get_surname', 'practice_number', 'hospital')
+
+    def get_firstname(self, obj):
+        """Return the first name of the associated user."""
+        return obj.user.firstname
+    get_firstname.short_description = 'First Name'  # Optional: Set column header
+
+    def get_surname(self, obj):
+        """Return the surname of the associated user."""
+        return obj.user.surname
+    get_surname.short_description = 'Surname'
+
+
+
+    
 
 # Register the custom user admin with the User model
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Hospital, HospitalAdmin)
 admin.site.register(Event, EventAdmin)
-admin.site.register(Doctor)
+admin.site.register(Doctor, DoctorAdmin)
