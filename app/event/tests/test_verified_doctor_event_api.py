@@ -15,8 +15,7 @@ from event.serializers import (
 )
 
 from .helper_for_event_tests import (
-    create_hospital, create_user, create_doctor, create_event,
-    create_random_entities
+    create_event, create_random_entities
 )
 
 EVENTS_URL = reverse('event:event-list')
@@ -33,17 +32,7 @@ class VerifiedDoctorEventApiTests(TestCase):
     def setUp(self):
         """Set up the test client and create necessary data."""
         self.client = APIClient()
-        self.hospital = create_hospital()
-        self.user = create_user(**{
-            'firstname':'John',
-            'surname':'Doe',
-            'email':'john.doe@example.com',
-            'phone_number':'+1234567890',
-        })
-        self.doctor = create_doctor(
-            user=self.user, 
-            hospital=self.hospital
-        )
+        self.user, self.hospital, self.doctor = create_random_entities()
         self.client.force_authenticate(user=self.user)
 
     def test_doctor_retrieve_events(self):
@@ -139,10 +128,10 @@ class VerifiedDoctorEventApiTests(TestCase):
 
     def test_update_user_returns_error(self):
         """Test changing the event user results in an error"""
-        new_user = create_user(email='user2@example.com', password='test12434')
+        u1, h1, d1 =  create_random_entities()
         event = create_event(created_by=self.user, doctor=self.doctor)
 
-        payload = {'created_by': new_user.id}
+        payload = {'created_by': u1.id}
         url = event_detail_url(event.id)
 
         self.client.patch(url, payload)
