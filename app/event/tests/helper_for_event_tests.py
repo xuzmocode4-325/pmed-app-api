@@ -52,7 +52,7 @@ def create_user(**params):
     return get_user_model().objects.create(**params)
 
 
-def create_random_entities():
+def create_random_entities(verified=True):
     """Create a random user, hospital, and doctor."""
     # Generate random data
     random_number = random.randint(1, 1000)
@@ -81,7 +81,7 @@ def create_random_entities():
         practice_number=random_number,
         comments=f'Comments for doctor {random_number}',
         hospital=hospital,
-        is_verified=True, 
+        is_verified=verified, 
     )
     
     return user, hospital, doctor
