@@ -2,7 +2,7 @@
 Django admin customisation
 """
 from core.models import (
-     User, Hospital, Event, Doctor,
+     User, Hospital, Event, Doctor, Procedure
 )
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -118,11 +118,12 @@ class DoctorAdmin(admin.ModelAdmin):
     get_surname.short_description = 'Surname'
 
 
-
-    
+class ProcedureAdmin(admin.ModelAdmin):
+    pass
 
 # Register the custom user admin with the User model
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Hospital, HospitalAdmin)
 admin.site.register(Event, EventAdmin)
 admin.site.register(Doctor, DoctorAdmin)
+admin.site.register(Procedure, ProcedureAdmin)
