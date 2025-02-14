@@ -1,3 +1,5 @@
+
+import random
 from django.contrib.auth import get_user_model
 from core.models import Event, Doctor, Hospital
 
@@ -50,3 +52,36 @@ def create_user(**params):
     return get_user_model().objects.create(**params)
 
 
+def create_random_entities():
+    """Create a random user, hospital, and doctor."""
+    # Generate random data
+    random_number = random.randint(1, 1000)
+    
+    # Create a user
+    user = get_user_model().objects.create_user(
+        email=f'user{random_number}@example.com',
+        password='password123',
+        firstname=f'Firstname{random_number}',
+        surname=f'Surname{random_number}',
+    )
+    
+    # Create a hospital
+    hospital = Hospital.objects.create(
+        name=f'Hospital{random_number}',
+        street=f'{random_number} Main St',
+        city=f'City{random_number}',
+        state=f'State{random_number}',
+        postal_code=f'{random_number:05}',
+        country='US'
+    )
+    
+    # Create a doctor
+    doctor = Doctor.objects.create(
+        user=user,
+        practice_number=random_number,
+        comments=f'Comments for doctor {random_number}',
+        hospital=hospital,
+        is_verified=True, 
+    )
+    
+    return user, hospital, doctor
