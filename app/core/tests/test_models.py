@@ -6,7 +6,7 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
-from .. models import Hospital, Doctor, Event
+from .. models import Hospital, Doctor, Event, Procedure
 
 from django_countries.fields import Country
 from phonenumber_field.modelfields import PhoneNumber
@@ -154,3 +154,24 @@ class ModelAdminTests(TestCase):
 
         self.assertIsNotNone(event.created_by)
         self.assertEqual(str(event), f"Event {event.id} (Dr. {event.doctor.user.surname})")
+
+    def test_create_procedure(self):
+        event = Event.objects.create(
+            created_by=self.user,
+            doctor=self.doctor,
+        )
+
+        procedure = Procedure.objects.create(
+            created_by=self.user,
+            patient_name='Test',
+            patient_surname='Test',
+            patient_age=18,
+            case_number='12/344343',
+            event=event,
+            description='A test procedure',
+            ward=1
+        )
+
+        str_test = f'Case {procedure.case_number} - for T. Test'
+
+        self.assertEqual(str(procedure), str_test)
