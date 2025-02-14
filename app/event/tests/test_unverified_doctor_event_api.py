@@ -33,9 +33,9 @@ class UnverifiedDoctorEventApiTests(TestCase):
         self.client = APIClient()
         self.user, self.hospital, self.doctor, = create_random_entities(verified=False)
         self.client.force_authenticate(self.user)
-        
+
     def test_unverified_doctor_event_returns_error(self):
-        """Test that unverified doctors errors."""
+        """Test that unverified doctors return errors."""
     
         create_event(
             created_by=self.user,
