@@ -1,5 +1,6 @@
 # from decimal import Decimal
 
+import random
 from django.urls import reverse
 from django.test import TestCase
 
@@ -14,9 +15,12 @@ from event.serializers import (
     EventDetailSerializer
 )
 
+from django.contrib.auth import get_user_model
+from core.models import Hospital, Doctor
+
+
 from .helper_for_event_tests import (
-    create_hospital, create_user, create_doctor, create_event,
-    create_random_entities
+    create_hospital, create_user, create_event, create_random_entities
 )
 
 EVENTS_URL = reverse('event:event-list')
@@ -25,9 +29,7 @@ def event_detail_url(event_id):
     """Create and return a event detail URL"""
     return reverse('event:event-detail', args=[event_id])
 
-
-
-class VerifiedDoctorEventApiTests(TestCase):
+class StaffUserEventApiTests(TestCase):
     """Test authenticated API requests"""
 
     def setUp(self):
@@ -39,22 +41,27 @@ class VerifiedDoctorEventApiTests(TestCase):
             'surname':'Doe',
             'email':'john.doe@example.com',
             'phone_number':'+1234567890',
+            'is_staff':True,
         })
-        self.doctor = create_doctor(
-            user=self.user, 
-            hospital=self.hospital
-        )
         self.client.force_authenticate(user=self.user)
 
-    def test_doctor_retrieve_events(self):
+    def test_staff_retrieve_events(self):
         """Test retrieving a list of events."""
+
+        u1, h1, d1 = create_random_entities()
         create_event(
             created_by=self.user,
-            doctor=self.doctor, 
+            doctor=d1, 
         )
+        u2, h2, d2 = create_random_entities()
         create_event(
             created_by=self.user, 
-            doctor=self.doctor, 
+            doctor=d2, 
+        )
+        u3, h3, d3 = create_random_entities()
+        create_event(
+            created_by=self.user, 
+            doctor=d3, 
         )
 
         res = self.client.get(EVENTS_URL)
@@ -65,32 +72,46 @@ class VerifiedDoctorEventApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
 
-    def test_event_list_limited_user(self):
-        """Test list of events is limited to authenticated user"""
+    def test_staff_event_list_unlimited(self):
+        """Test list of events is shows all user events for staff"""
         # Create the hospital instance first
+        
         u1, h1, d1 = create_random_entities()
-
         create_event(
             created_by=u1,
             doctor=d1, 
         )
+        u2, h2, d2 = create_random_entities()
         create_event(
-            created_by=self.user,
-            doctor=self.doctor, 
+            created_by=u2, 
+            doctor=d2, 
+        )
+        u3, h3, d3 = create_random_entities()
+        create_event(
+            created_by=u3, 
+            doctor=d3, 
         )
 
         res = self.client.get(EVENTS_URL)
 
-        events = Event.objects.filter(created_by=self.user)
+        events = Event.objects.all().order_by('id')
         serializer = EventSerializer(events, many=True)
+
+        sorted_res_data = sorted(res.data, key=lambda x: x['id'])
+
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(sorted_res_data, serializer.data)
 
     def test_get_event_detail(self):
         """Test getting event detail"""
+        u1, h1, d1 = create_random_entities()
+        create_event(
+            created_by=self.user,
+            doctor=d1, 
+        )
         event = create_event(
             created_by=self.user,
-            doctor=self.doctor, 
+            doctor=d1, 
         )
 
         url = event_detail_url(event.id)
@@ -101,12 +122,20 @@ class VerifiedDoctorEventApiTests(TestCase):
 
     def test_create_event(self):
         """Test creating an event via API"""
+
+        u1, h1, d1 = create_random_entities()
+        create_event(
+            created_by=self.user,
+            doctor=d1, 
+        )
+        
         payload = {
-            'doctor': int(self.doctor.id),
+            'doctor': int(d1.id),
             'description': '4 procedures'
         }
 
         res = self.client.post(EVENTS_URL, payload)
+        print(res.content)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         event = Event.objects.get(id=res.data['id'])
@@ -120,10 +149,16 @@ class VerifiedDoctorEventApiTests(TestCase):
 
     def test_partial_update(self):
         """Test partial update of a event"""
-    
+
+        u1, h1, d1 = create_random_entities()
+        create_event(
+            created_by=u1,
+            doctor=d1, 
+        )
+       
         event = create_event(
             created_by=self.user,
-            doctor=self.doctor,
+            doctor=d1,
             description='Test Event Description',
         )
 
@@ -139,10 +174,13 @@ class VerifiedDoctorEventApiTests(TestCase):
 
     def test_update_user_returns_error(self):
         """Test changing the event user results in an error"""
-        new_user = create_user(email='user2@example.com', password='test12434')
-        event = create_event(created_by=self.user, doctor=self.doctor)
+        u1, h1, d1 = create_random_entities()
+        event = create_event(
+            created_by=self.user,
+            doctor=d1, 
+        )
 
-        payload = {'created_by': new_user.id}
+        payload = {'created_by': u1.id}
         url = event_detail_url(event.id)
 
         self.client.patch(url, payload)
@@ -150,9 +188,15 @@ class VerifiedDoctorEventApiTests(TestCase):
 
         self.assertEqual(event.created_by, self.user)
 
-    def test_delete_event(self):
+    def test_staff_delete_event(self):
         """Test deleting a event successful"""
-        event = create_event(created_by=self.user, doctor=self.doctor)
+        u1, h1, d1 = create_random_entities()
+        event = create_event(
+            created_by=self.user,
+            doctor=d1, 
+        )
+
+        event = create_event(created_by=self.user, doctor=d1)
 
         url = event_detail_url(event.id)
         res = self.client.delete(url)
@@ -172,5 +216,5 @@ class VerifiedDoctorEventApiTests(TestCase):
         url = event_detail_url(event.id)
         res = self.client.delete(url)
 
-        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertTrue(Event.objects.filter(id=event.id).exists())
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Event.objects.filter(id=event.id).exists())
