@@ -79,11 +79,13 @@ class CustomUserAdmin(BaseUserAdmin):
 
 class HospitalAdmin (admin.ModelAdmin):
     list_display = ('name', 'city', 'country',)  
+    search_fields = ('name', 'city', 'country',)  
 
 
 class EventAdmin (admin.ModelAdmin):
     # Fields to display in the user list view
     list_display = ('get_doctor', 'get_hospital', 'description', )
+    search_fields = ('get_doctor', 'get_hospital',)
     readonly_fields = ['created_by', 'created_at', 'updated_by', 'updated_at']
 
     def get_hospital(self, obj):
@@ -119,7 +121,23 @@ class DoctorAdmin(admin.ModelAdmin):
 
 
 class ProcedureAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('patient_name', 'patient_surname', 'case_number' ,'get_doctor')
+    readonly_fields = ['created_by', 'created_at', 'updated_by', 'updated_at']
+
+    search_fields = ('patient_name', 'patient_surname', 'case_number', 'get_doctore')
+
+    def get_doctor(self, obj):
+        """Return the doctor associated with the procedure"""
+        initial = obj.event.doctor.user.firstname[0]
+        surname = obj.event.doctor.user.surname
+        return f"Dr. {initial}. {surname}"
+    
+    def save_model(self, request, obj, form, change):
+        """Override save_model to set created_by to the current user."""
+        if not change or not obj.created_by:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
 
 # Register the custom user admin with the User model
 admin.site.register(User, CustomUserAdmin)
