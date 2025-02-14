@@ -154,6 +154,3 @@ class ModelAdminTests(TestCase):
 
         self.assertIsNotNone(event.created_by)
         self.assertEqual(str(event), f"Event {event.id} (Dr. {event.doctor.user.surname})")
-
-
-
