@@ -1,23 +1,17 @@
 # from decimal import Decimal
 
-import random
 from django.urls import reverse
 from django.test import TestCase
+
+from core.models import Event
 
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from django_countries.fields import Country
-
-from core.models import Event, Doctor, Hospital
 from event.serializers import (
     EventSerializer,
     EventDetailSerializer
 )
-
-from django.contrib.auth import get_user_model
-from core.models import Hospital, Doctor
-
 
 from .helper_for_event_tests import (
     create_user, create_event, create_random_entities
@@ -29,37 +23,37 @@ def event_detail_url(event_id):
     """Create and return a event detail URL"""
     return reverse('event:event-detail', args=[event_id])
 
-class StaffUserEventApiTests(TestCase):
+class StaffManageUserEventApiTests(TestCase):
     """Test authenticated API requests"""
 
     def setUp(self):
         """Set up the test client and create necessary data."""
         self.client = APIClient()
-        self.user = create_user(**{
+        self.staff_user = create_user(**{
             'firstname':'John',
             'surname':'Doe',
             'email':'john.doe@example.com',
             'phone_number':'+1234567890',
             'is_staff':True,
         })
-        self.client.force_authenticate(user=self.user)
+        self.client.force_authenticate(user=self.staff_user)
 
     def test_staff_retrieve_events(self):
         """Test retrieving a list of events."""
 
         u1, h1, d1 = create_random_entities()
         create_event(
-            created_by=self.user,
+            created_by=self.staff_user,
             doctor=d1, 
         )
         u2, h2, d2 = create_random_entities()
         create_event(
-            created_by=self.user, 
+            created_by=self.staff_user, 
             doctor=d2, 
         )
         u3, h3, d3 = create_random_entities()
         create_event(
-            created_by=self.user, 
+            created_by=self.staff_user, 
             doctor=d3, 
         )
 
@@ -120,7 +114,7 @@ class StaffUserEventApiTests(TestCase):
 
         u1, h1, d1 = create_random_entities()
         create_event(
-            created_by=self.user,
+            created_by=self.staff_user,
             doctor=d1, 
         )
         
@@ -130,7 +124,6 @@ class StaffUserEventApiTests(TestCase):
         }
 
         res = self.client.post(EVENTS_URL, payload)
-        print(res.content)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         event = Event.objects.get(id=res.data['id'])
@@ -139,11 +132,11 @@ class StaffUserEventApiTests(TestCase):
                 self.assertEqual(getattr(event, k).id, v)  # Compare Doctor IDs
             else:
                 self.assertEqual(getattr(event, k), v)
-        self.assertEqual(event.created_by, self.user)
+        self.assertEqual(event.created_by, self.staff_user)
 
 
     def test_partial_update(self):
-        """Test partial update of a event"""
+        """Test staff partial update of a user event"""
 
         u1, h1, d1 = create_random_entities()
     
@@ -160,14 +153,14 @@ class StaffUserEventApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         event.refresh_from_db()
         self.assertEqual(event.description, payload['description'])
-        self.assertEqual(event.created_by, self.user)
-        self.assertEqual(event.updated_by, self.user)
+        self.assertEqual(event.created_by, u1)
+        self.assertEqual(event.updated_by, self.staff_user)
 
     def test_update_user_returns_error_one(self):
         """Test changing the event user results in an error"""
         u1, h1, d1 = create_random_entities()
         event = create_event(
-            created_by=self.user,
+            created_by=self.staff_user,
             doctor=d1, 
         )
 
@@ -177,7 +170,7 @@ class StaffUserEventApiTests(TestCase):
         self.client.patch(url, payload)
         event.refresh_from_db()
 
-        self.assertEqual(event.created_by, self.user)
+        self.assertEqual(event.created_by, self.staff_user)
 
     def test_update_user_returns_error_two(self):
         """Test changing the event user results in an error"""
@@ -187,19 +180,19 @@ class StaffUserEventApiTests(TestCase):
             doctor=d1, 
         )
 
-        payload = {'created_by': self.user.id}
+        payload = {'created_by': self.staff_user.id}
         url = event_detail_url(event.id)
 
         self.client.patch(url, payload)
         event.refresh_from_db()
 
-        self.assertEqual(event.created_by, self.user)
+        self.assertEqual(event.created_by, u1)
 
     def test_staff_delete_own_event(self):
         """Test deleting a event successful"""
         u1, h1, d1 = create_random_entities()
         event = create_event(
-            created_by=self.user,
+            created_by=self.staff_user,
             doctor=d1, 
         )
 
@@ -225,8 +218,8 @@ class StaffUserEventApiTests(TestCase):
         self.assertFalse(Event.objects.filter(id=event.id).exists())
 
 
-class StaffUserEventApiTests(TestCase):
-    """Test authenticated API requests"""
+class UserGetStaffEventApiTests(TestCase):
+    """Test authenticated staff API requests"""
 
     def setUp(self):
         """Set up the test client and create necessary data."""
