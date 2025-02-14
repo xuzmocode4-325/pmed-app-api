@@ -20,7 +20,7 @@ from core.models import Hospital, Doctor
 
 
 from .helper_for_event_tests import (
-    create_hospital, create_user, create_event, create_random_entities
+    create_user, create_event, create_random_entities
 )
 
 EVENTS_URL = reverse('event:event-list')
@@ -35,7 +35,6 @@ class StaffUserEventApiTests(TestCase):
     def setUp(self):
         """Set up the test client and create necessary data."""
         self.client = APIClient()
-        self.hospital = create_hospital()
         self.user = create_user(**{
             'firstname':'John',
             'surname':'Doe',
@@ -105,10 +104,6 @@ class StaffUserEventApiTests(TestCase):
     def test_get_event_detail(self):
         """Test getting event detail"""
         u1, h1, d1 = create_random_entities()
-        create_event(
-            created_by=self.user,
-            doctor=d1, 
-        )
         event = create_event(
             created_by=self.user,
             doctor=d1, 
@@ -218,3 +213,38 @@ class StaffUserEventApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Event.objects.filter(id=event.id).exists())
+
+
+class StaffUserEventApiTests(TestCase):
+    """Test authenticated API requests"""
+
+    def setUp(self):
+        """Set up the test client and create necessary data."""
+        self.client = APIClient()
+        self.staff_user = create_user(**{
+            'firstname':'John',
+            'surname':'Doe',
+            'email':'john.doe@example.com',
+            'phone_number':'+1234567890',
+            'is_staff':True,
+        })
+        self.user, self.hospital, self.doctor = create_random_entities()
+        self.client.force_authenticate(user=self.user)
+
+    def test_doctor_access_staff_event(self):
+        """Test that a doctor can access staff created event"""
+
+        event = create_event(
+            created_by=self.staff_user,
+            doctor=self.doctor, 
+        )
+
+        url = event_detail_url(event.id)
+        res = self.client.get(url)
+
+        serializer = EventDetailSerializer(event)
+        self.assertEqual(res.data, serializer.data)
+
+
+
+    
