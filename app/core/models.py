@@ -181,7 +181,7 @@ class Event(models.Model):
         return f"Event {self.id} (Dr. {self.doctor.user.surname})"
 
 class Procedure(models.Model):
-    """Tag for filtering recipes"""
+    """Procedure covered in each event"""
     patient_name = models.CharField(max_length=255)
     patient_surname = models.CharField(max_length=255)
     patient_age = models.PositiveSmallIntegerField()
@@ -212,3 +212,52 @@ class Procedure(models.Model):
 
     def __str__(self):
         return f"Case {self.case_number} - for {self.patient_name[0]}. {self.patient_surname}"
+    
+
+class Item(models.Model):
+    TYPE_CHOICES = {
+        "Plate": {
+            "Titanium Mesh":"Titanium Mesh", 
+        },
+        "Instruments": {
+            "Scissors":"Scissors", 
+            "Drill":"Drill", 
+            "Screwdriver":"Screwdriver", 
+            "Screwdriver Holding Device":"Screwdriver Holding Device",
+        },
+        "Screw":"Screw", 
+        "Rack":"Rack", 
+        "Containers":{
+            "Container":"Container",
+            "Rack":"Rack", 
+            "Tray":"Tray"
+        }
+    }
+
+    """Items allocated for each procedure"""
+    catalogue_id = models.IntegerField()
+    profile = models.DecimalField(max_digits=4, decimal_places=1) 
+    item_type = models.TextField(choices=TYPE_CHOICES) # normalize
+    description = models.TextField()
+    base_price = models.DecimalField(max_digits=8, decimal_places=2)
+    vat_price = models.DecimalField(max_digits=8, decimal_places=2)
+
+    def __str__(self):
+        return(f"{self.catalogue_id} {self.item_type}")
+
+
+class Allocation(models.Model):
+    procedure = models.ForeignKey(
+        Procedure,
+        on_delete=models.CASCADE,
+        related_name='allocations'
+    )
+    item = models.ForeignKey(
+        'Item',  # Assuming you have an Item model
+        on_delete=models.CASCADE
+    )
+    quantity = models.PositiveIntegerField()
+    is_replenishment = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.item}"
