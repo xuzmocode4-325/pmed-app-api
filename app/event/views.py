@@ -5,7 +5,7 @@ from rest_framework import viewsets, mixins
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import permissions
 
-from core.models import Event, Procedure
+from core.models import Event, Procedure, Allocation
 from . import serializers
 
 
@@ -26,6 +26,7 @@ class IsAuthorized(permissions.BasePermission):
             return True
 
         return False
+        
 
 class EventViewSet(viewsets.ModelViewSet):
     """View for event API management"""
@@ -75,3 +76,27 @@ class ProcedureViewSet(
         return self.queryset.filter(
             event__doctor__user=user
         ).order_by('-created_at')
+    
+
+class AllocationViewSet(
+    mixins.DestroyModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet):
+
+    serializer_class = serializers.AllocationSerializer
+    queryset = Allocation.objects.all()
+    authentication_classes = [TokenAuthentication]
+    permission_classes =  [IsAuthorized]
+
+    def get_queryset(self):
+        """Filter queryset to authenticated user"""
+        user = self.request.user
+        if user.is_staff:
+            # If the user is a staff member, return all events
+            return self.queryset.order_by('-id')
+         # Otherwise, return only the procedures related to events assigned to the doctor's profile
+        return self.queryset.filter(
+            procedure__event__doctor__user=user
+        ).order_by('-id')
+    
