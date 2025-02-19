@@ -1,12 +1,15 @@
 """
 Module for testing any models within the core app.
 """
+from decimal import Decimal
 from django.urls import reverse
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
-from .. models import Hospital, Doctor, Event, Procedure
+from .. models import (
+    Hospital, Doctor, Event, Procedure, Equipment, Allocation
+)
 
 from django_countries.fields import Country
 from phonenumber_field.modelfields import PhoneNumber
@@ -175,3 +178,58 @@ class ModelAdminTests(TestCase):
         str_test = f'Case {procedure.case_number} - for T. Test'
 
         self.assertEqual(str(procedure), str_test)
+
+
+    def test_create_product(self):
+        item = Equipment.objects.create(
+            catalogue_id = 9252517,
+            profile = 1.6,
+            item_type = 'plate', 
+            description = 'Titan Mircoplate',
+            base_price = Decimal('7841.36'),
+            vat_price = Decimal('9017.57'),
+        )
+
+        str_id = str(item.catalogue_id)
+        digimed_id = f'{str_id[:2]}-{str_id[2:5]}-{str_id[5:]}'
+      
+        str_test = f'{item.item_type} ({digimed_id})'
+        self.assertEqual(str(item), str_test)
+
+
+    def test_create_allocation(self):
+        item = Equipment.objects.create(
+            catalogue_id = 9252517,
+            profile = 1.6,
+            item_type = 'Plate',
+            description = 'Titan Mircoplate',
+            base_price = Decimal('7841.36'),
+            vat_price = Decimal('9017.57'),
+        )
+
+        event = Event.objects.create(
+            created_by=self.user,
+            doctor=self.doctor,
+        )
+
+        procedure = Procedure.objects.create(
+            created_by=self.user,
+            patient_name='Test',
+            patient_surname='Test',
+            patient_age=18,
+            case_number='12/344343',
+            event=event,
+            description='A test procedure',
+            ward=1
+        )
+
+        allocation = Allocation.objects.create(
+            procedure = procedure,
+            is_replenishment = False,
+            product = item, 
+            quantity = 2,
+        )
+
+        str_test = f'{allocation.quantity} x {allocation.product}'
+
+        self.assertEqual(str(allocation), str_test)
