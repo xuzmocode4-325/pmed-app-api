@@ -23,7 +23,7 @@ def event_detail_url(event_id):
     """Create and return a event detail URL"""
     return reverse('event:event-detail', args=[event_id])
 
-class StaffManageUserEventApiTests(TestCase):
+class StaffUserEventApiTests(TestCase):
     """Test authenticated API requests"""
 
     def setUp(self):
