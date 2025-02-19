@@ -114,7 +114,8 @@ class Doctor(models.Model):
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name='doctor'
+        related_name='doctor',
+        limit_choices_to={'is_staff': False}
     )
     hospital = models.ForeignKey(
         Hospital,
@@ -129,7 +130,7 @@ class Doctor(models.Model):
     is_verified = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Dr. {self.user.firstname[0]}. {self.user.surname} - {self.practice_number}"
+        return f"Dr. {self.user.firstname[0]} {self.user.surname} ({self.practice_number})"
 
     def save(self, *args, **kwargs):
         """Override save method to ensure contact has a hospital."""
@@ -185,7 +186,9 @@ class Procedure(models.Model):
     patient_name = models.CharField(max_length=255)
     patient_surname = models.CharField(max_length=255)
     patient_age = models.PositiveSmallIntegerField()
-    case_number = models.CharField(max_length=64, unique=True)
+    case_number = models.CharField(
+        max_length=64, unique=True,
+    )
     event = models.ForeignKey(
         'Event',
         on_delete=models.CASCADE,
@@ -211,12 +214,16 @@ class Procedure(models.Model):
     )
 
     def __str__(self):
-        return f"Case {self.case_number} - for {self.patient_name[0]}. {self.patient_surname}"
+        case_ = self.case_number
+        patient = self.patient_name[0]
+        surname = self.patient_surname
+        return f"Case {case_} - for {patient}. {surname}"
     
 
-class Item(models.Model):
+class Equipment(models.Model):
     TYPE_CHOICES = {
-        "Plate": {
+        "Plates": {
+            "Plate":"Plate",
             "Titanium Mesh":"Titanium Mesh", 
         },
         "Instruments": {
@@ -225,13 +232,15 @@ class Item(models.Model):
             "Screwdriver":"Screwdriver", 
             "Screwdriver Holding Device":"Screwdriver Holding Device",
         },
-        "Screw":"Screw", 
-        "Rack":"Rack", 
+     
         "Containers":{
             "Container":"Container",
             "Rack":"Rack", 
             "Tray":"Tray"
-        }
+        },
+        "Other":{
+            "Screw":"Screw", 
+        },
     }
 
     """Items allocated for each procedure"""
@@ -242,8 +251,17 @@ class Item(models.Model):
     base_price = models.DecimalField(max_digits=8, decimal_places=2)
     vat_price = models.DecimalField(max_digits=8, decimal_places=2)
 
+    class Meta:
+        verbose_name_plural = "equipment"
+
+    def get_digimed(self):
+        str_id = str(self.catalogue_id)
+        digimed_id = f'{str_id[:2]}-{str_id[2:5]}-{str_id[5:]}'
+        return digimed_id
+
     def __str__(self):
-        return(f"{self.catalogue_id} {self.item_type}")
+        digimed_id = self.get_digimed()
+        return(f"{self.item_type} ({digimed_id})")
 
 
 class Allocation(models.Model):
@@ -252,12 +270,12 @@ class Allocation(models.Model):
         on_delete=models.CASCADE,
         related_name='allocations'
     )
-    item = models.ForeignKey(
-        'Item',  # Assuming you have an Item model
+    product = models.ForeignKey(
+        'Equipment', 
         on_delete=models.CASCADE
     )
     quantity = models.PositiveIntegerField()
     is_replenishment = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.quantity} x {self.item}"
+        return f"{self.quantity} x {self.product}"
