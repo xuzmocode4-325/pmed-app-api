@@ -3,7 +3,18 @@ Serializers for events APIs
 """
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
-from core.models import Event, Doctor, Hospital, Procedure
+from core.models import Event, Procedure, Allocation
+
+
+class AllocationSerializer(serializers.ModelSerializer):
+    """Serilaizer for allocations"""
+
+    class Meta:
+        model = Allocation
+        fields = ['id', 'procedure', 'product', 'quantity']
+        read_only_fields = [
+            'id', 'is_replenishment'
+        ]
 
 
 class ProcedureSerializer(serializers.ModelSerializer):
@@ -29,7 +40,8 @@ class EventSerializer(serializers.ModelSerializer):
             'updated_at', 'created_by', 'updated_by',
         ]
         read_only_fields = [
-            'id', 'created_at', 'updated_at', 'created_by', 'updated_by',
+            'id', 'created_at', 'updated_at', 'created_by', 
+            'updated_by',
         ]
 
     def validate(self, attrs):
@@ -37,12 +49,16 @@ class EventSerializer(serializers.ModelSerializer):
         if self.instance is None:
             doctor = attrs.get('doctor')
             if doctor and not doctor.is_verified:
-                raise serializers.ValidationError("The doctor must be verified to be associated with an event.")
+                raise serializers.ValidationError(
+                    "The doctor must be verified to be associated with an event."
+                )
         else:
             # For updates, use the existing doctor if not provided in attrs
             doctor = attrs.get('doctor', self.instance.doctor)
             if doctor and not doctor.is_verified:
-                raise serializers.ValidationError("The doctor must be verified to be associated with an event.")
+                raise serializers.ValidationError(
+                    "The doctor must be verified to be associated with an event."
+                )
         return attrs
 
     def create(self, validated_data):
