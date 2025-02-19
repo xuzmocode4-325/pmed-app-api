@@ -1,8 +1,11 @@
 
 import random
 import string
+import Decimal 
 from django.contrib.auth import get_user_model
-from core.models import Event, Doctor, Hospital, Procedure
+from core.models import (
+    Event, Doctor, Hospital, Procedure, Equipment
+)
 
 from django_countries.fields import Country
 
@@ -129,3 +132,30 @@ def generate_random_patient_details():
         'ward': random.randint(1, 50)  # Assuming ward numbers range from 1 to 50
     }
     return patient_details
+
+def generate_random_equipment():
+    # Randomly select a type and subtype
+    type_category = random.choice(list(Equipment.TYPE_CHOICES.keys()))
+    item_type = random.choice(list(Equipment.TYPE_CHOICES[type_category].values()))
+
+    # Generate random values for other fields
+    catalogue_id = random.randint(100000, 999999)  # Assuming a 6-digit catalogue ID
+    profile = round(random.uniform(0.1, 9.9), 1)  # Random profile with one decimal place
+    description = f"Random description for {item_type}"
+    base_price = round(Decimal(random.uniform(10.00, 1000.00)), 2)  # Random base price
+    vat_price = round(base_price * Decimal(1.2), 2)  # Assuming VAT is 20%
+
+    # Create an Equipment instance
+    equipment = Equipment(
+        catalogue_id=catalogue_id,
+        profile=profile,
+        item_type=item_type,
+        description=description,
+        base_price=base_price,
+        vat_price=vat_price
+    )
+
+    equipment.save()
+
+    return equipment
+
