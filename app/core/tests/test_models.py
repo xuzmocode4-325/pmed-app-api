@@ -224,10 +224,10 @@ class ModelAdminTests(TestCase):
         )
 
         allocation = Allocation.objects.create(
-            procedure = procedure,
-            is_replenishment = False,
-            product = item, 
-            quantity = 2,
+            procedure=procedure,
+            is_replenishment=False,
+            product=item, 
+            quantity=2,
         )
 
         str_test = f'{allocation.quantity} x {allocation.product}'
