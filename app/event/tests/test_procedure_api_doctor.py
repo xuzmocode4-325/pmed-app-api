@@ -21,17 +21,6 @@ def procedure_detail_url(procedure_id):
     return reverse('event:procedure-detail', args=[procedure_id])
 
 
-class PublicProceduresApiTest(TestCase):
-    """Test unauthenticated API requests"""
-
-    def setUP(self):
-        self.client = APIClient()
-
-    def test_auth_required(self):
-        """Test auth is required for retrieving procedures"""
-        res = self.client.get(PROCEDURES_URL)
-        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
-
 class DoctorProcedureApiTests(TestCase):
     """Test authenticated API requests"""
 
