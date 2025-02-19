@@ -98,7 +98,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     phone_number = PhoneNumberField(null=True, blank=True)
    
-
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
@@ -276,6 +275,22 @@ class Allocation(models.Model):
     )
     quantity = models.PositiveIntegerField()
     is_replenishment = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    created_by = models.ForeignKey(
+        get_user_model(), 
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        related_name='allocation',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        get_user_model(), 
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        related_name='moified_allocations',
+    )
 
     def __str__(self):
         return f"{self.quantity} x {self.product}"
