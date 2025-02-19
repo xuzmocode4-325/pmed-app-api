@@ -92,9 +92,11 @@ class EventAdmin (admin.ModelAdmin):
         'doctor', 'get_hospital', 'description', 'created_by')
     search_fields = (
         'created_by__firstname', 'created_by__surname', 
-        'doctor__user__surname', 'description')
+        'doctor__user__surname', 'description', 
+    )
     readonly_fields = [
-        'created_by', 'created_at', 'updated_by', 'updated_at']
+        'created_by', 'created_at', 'updated_by', 'updated_at'
+    ]
 
     def get_hospital(self, obj):
         """Return the first name of the associated user."""
@@ -118,13 +120,11 @@ class DoctorAdmin(admin.ModelAdmin):
     list_display = (
         'get_firstname', 'get_surname', 'practice_number', 
         'hospital', 'is_verified')
-    
+    list_filter = ('is_verified',)
     search_fields = (
         'practice_number', 'hospital__name',
         'user__firstname', 'user__surname',
     )
-    
-    list_filter = ('is_verified',)
     
     def get_firstname(self, obj):
         """Return the first name of the associated user."""
@@ -138,12 +138,16 @@ class DoctorAdmin(admin.ModelAdmin):
 
 
 class ProcedureAdmin(admin.ModelAdmin):
-    list_display = ('patient_name', 'patient_surname', 'case_number' ,'get_doctor')
-    readonly_fields = ['created_by', 'created_at', 'updated_by', 'updated_at']
-
+    list_display = (
+        'patient_name', 'patient_surname', 'case_number' ,'get_doctor',
+    )
     search_fields = (
         'patient_name', 'patient_surname', 'case_number',
-        'event__doctor__user__surname')
+        'event__doctor__user__surname',
+    )
+    readonly_fields = [
+        'created_by', 'created_at', 'updated_by', 'updated_at'
+    ]
 
     def get_doctor(self, obj):
         """Return the doctor associated with the procedure"""
@@ -161,7 +165,10 @@ class ProcedureAdmin(admin.ModelAdmin):
 
 
 class EquipmentAdmin(admin.ModelAdmin):
-    list_display = ('catalogue_id', 'get_digimed', 'profile', 'item_type', 'description')
+    list_display = (
+        'catalogue_id', 'get_digimed', 'profile', 
+        'item_type', 'description',
+    )
     search_fields = ('catalogue_id', 'item_type',)
 
     def get_digimed(self, obj):
@@ -172,11 +179,17 @@ class EquipmentAdmin(admin.ModelAdmin):
     
 
 class AllocationAdmin(admin.ModelAdmin):
-    list_display = ('product', 'quantity', 'procedure', 'is_replenishment', 'get_doctor')
+    list_display = (
+        'product', 'quantity', 'procedure', 'is_replenishment', 
+        'get_doctor',
+    )
     search_fields = (
         'product__item_type', 'procedure__patient_name',
         'procedure__patient_surname', 'procedure__case_number',
         'procedure__event__doctor__user__surname')
+    readonly_fields = [
+        'created_by', 'created_at', 'updated_by', 'updated_at'
+    ]
 
     def get_doctor(self, obj):
         """Return the doctor associated with the procedure"""
