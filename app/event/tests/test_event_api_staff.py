@@ -3,7 +3,7 @@
 from django.urls import reverse
 from django.test import TestCase
 
-from core.models import Event
+from event.models import Event
 
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -45,16 +45,19 @@ class StaffUserEventApiTests(TestCase):
         create_event(
             created_by=self.staff_user,
             doctor=d1, 
+            hospital=h1,
         )
         u2, h2, d2 = create_random_entities()
         create_event(
             created_by=self.staff_user, 
             doctor=d2, 
+            hospital=h2,
         )
         u3, h3, d3 = create_random_entities()
         create_event(
             created_by=self.staff_user, 
             doctor=d3, 
+            hospital=h3,
         )
 
         res = self.client.get(EVENTS_URL)
@@ -73,16 +76,19 @@ class StaffUserEventApiTests(TestCase):
         create_event(
             created_by=u1,
             doctor=d1, 
+            hospital=h1,
         )
         u2, h2, d2 = create_random_entities()
         create_event(
             created_by=u2, 
             doctor=d2, 
+            hospital=h2,
         )
         u3, h3, d3 = create_random_entities()
         create_event(
             created_by=u3, 
             doctor=d3, 
+            hospital=h3,
         )
 
         res = self.client.get(EVENTS_URL)
@@ -101,6 +107,7 @@ class StaffUserEventApiTests(TestCase):
         event = create_event(
             created_by=u1,
             doctor=d1, 
+            hospital=h1,
         )
 
         url = event_detail_url(event.id)
@@ -113,14 +120,12 @@ class StaffUserEventApiTests(TestCase):
         """Test creating an event via API"""
 
         u1, h1, d1 = create_random_entities()
-        create_event(
-            created_by=self.staff_user,
-            doctor=d1, 
-        )
+     
         
         payload = {
             'doctor': int(d1.id),
-            'description': '4 procedures'
+            'description': '4 procedures',
+            'hospital': int(h1.id),
         }
 
         res = self.client.post(EVENTS_URL, payload)
@@ -128,7 +133,7 @@ class StaffUserEventApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         event = Event.objects.get(id=res.data['id'])
         for k, v in payload.items():
-            if k == 'doctor':
+            if k in ['doctor', 'hospital']:
                 self.assertEqual(getattr(event, k).id, v)  # Compare Doctor IDs
             else:
                 self.assertEqual(getattr(event, k), v)
@@ -144,6 +149,7 @@ class StaffUserEventApiTests(TestCase):
             created_by=u1,
             doctor=d1,
             description='Test Event Description',
+            hospital=h1,
         )
 
         payload = {'description': 'New Event Description'}
@@ -162,6 +168,7 @@ class StaffUserEventApiTests(TestCase):
         event = create_event(
             created_by=self.staff_user,
             doctor=d1, 
+            hospital=h1
         )
 
         payload = {'created_by': u1.id}
@@ -178,6 +185,7 @@ class StaffUserEventApiTests(TestCase):
         event = create_event(
             created_by=u1,
             doctor=d1, 
+            hospital=h1
         )
 
         payload = {'created_by': self.staff_user.id}
@@ -194,6 +202,7 @@ class StaffUserEventApiTests(TestCase):
         event = create_event(
             created_by=self.staff_user,
             doctor=d1, 
+            hospital=h1,
         )
 
         url = event_detail_url(event.id)
@@ -209,6 +218,7 @@ class StaffUserEventApiTests(TestCase):
         event = create_event(
             created_by=u1,
             doctor=d1, 
+            hospital=h1
         )
 
         url = event_detail_url(event.id)
@@ -234,12 +244,13 @@ class UserGetStaffEventApiTests(TestCase):
         self.user, self.hospital, self.doctor = create_random_entities()
         self.client.force_authenticate(user=self.user)
 
-    def test_doctor_access_staff_event(self):
+    def test_doctor_can_access_staff_event(self):
         """Test that a doctor can access staff created event"""
 
         event = create_event(
             created_by=self.staff_user,
             doctor=self.doctor, 
+            hospital=self.hospital,
         )
 
         url = event_detail_url(event.id)

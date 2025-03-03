@@ -2,7 +2,7 @@
 Database models.
 """
 from django.db import models
-from django.conf import settings
+from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import (
@@ -65,15 +65,6 @@ class UserManager(BaseUserManager):
         return user
     
 
-
-class EventManager(models.Manager):
-    def create_event(self, user, **kwargs):
-        """Create an event with the created_by field set to the user."""
-        kwargs['created_by'] = user
-        return self.create(**kwargs)
-
-
-
 class Hospital(models.Model):
     """Model to store hospital names"""
     name = models.CharField(max_length=255, unique=True)
@@ -85,6 +76,7 @@ class Hospital(models.Model):
 
     def __str__(self):
         return f"{self.name}, {self.city}, {self.state}, {self.country}"
+
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -112,16 +104,14 @@ class Doctor(models.Model):
         get_user_model(), 
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         related_name='doctor',
-        limit_choices_to={'is_staff': False}
-    )
-    hospital = models.ForeignKey(
-        Hospital,
-        on_delete=models.SET_NULL,
-        related_name='doctors',
-        null=True,  # Allow the hospital field to be nullable
-        blank=True  # Allow the hospital field to be optional in forms
+        limit_choices_to=(
+            Q(is_staff=False) 
+            & ~Q(is_superuser=False) 
+            & ~Q(is_active=True) 
+            & ~Q(doctor__isnull=False) 
+        )
     )
     practice_number = models.IntegerField(unique=True)
     comments = models.TextField()
@@ -133,8 +123,6 @@ class Doctor(models.Model):
 
     def save(self, *args, **kwargs):
         """Override save method to ensure contact has a hospital."""
-        if self.hospital is None:
-            raise ValidationError("The doctor must be associated with a hospital.")
         if self.user.firstname is None:
             raise ValidationError("The doctor must be assigned a firstname.")
         if self.user.surname is None:
@@ -144,82 +132,14 @@ class Doctor(models.Model):
         super().save(*args, **kwargs)
 
 
-class Event(models.Model):
-    """Model to store all events"""
-    created_by = models.ForeignKey(
-        get_user_model(),
-        on_delete=models.DO_NOTHING,  # Change this line
-        related_name='event',
-    )
-    doctor = models.ForeignKey(
-        'Doctor',
-        on_delete=models.CASCADE,
-        related_name='event'
-    )
-
-    description = models.TextField(null=True, blank=True)
-    # Add additional fields for the Event model as needed
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    updated_by = models.ForeignKey(
-        get_user_model(),
-        on_delete=models.DO_NOTHING,
-        related_name='modified_events',
-        null=True,
-        blank=True
-    )
-
-    objects = EventManager()
-
     def save(self, *args, **kwargs):
         """Override save method to update the modified_by field."""
         if 'request' in kwargs:
-            self.modified_by = kwargs.pop('request').user
+            self.updated_by_by = kwargs.pop('request').user
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        return f"Event {self.id} (Dr. {self.doctor.user.surname})"
-
-class Procedure(models.Model):
-    """Procedure covered in each event"""
-    patient_name = models.CharField(max_length=255)
-    patient_surname = models.CharField(max_length=255)
-    patient_age = models.PositiveSmallIntegerField()
-    case_number = models.CharField(
-        max_length=64, unique=True,
-    )
-    event = models.ForeignKey(
-        'Event',
-        on_delete=models.CASCADE,
-        related_name='procedure'
-    )
-    description = models.TextField()
-    ward = models.PositiveSmallIntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(
-        get_user_model(), 
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        related_name='procedure',
-    )
-    updated_at = models.DateTimeField(auto_now=True)
-    updated_by = models.ForeignKey(
-        get_user_model(), 
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        related_name='moified_procedures',
-    )
-
-    def __str__(self):
-        case_ = self.case_number
-        patient = self.patient_name[0]
-        surname = self.patient_surname
-        return f"Case {case_} - for {patient}. {surname}"
     
-
-class Equipment(models.Model):
+class Product(models.Model):
     TYPE_CHOICES = {
         "Plates": {
             "Plate":"Plate",
@@ -250,8 +170,6 @@ class Equipment(models.Model):
     base_price = models.DecimalField(max_digits=8, decimal_places=2)
     vat_price = models.DecimalField(max_digits=8, decimal_places=2)
 
-    class Meta:
-        verbose_name_plural = "equipment"
 
     def get_digimed(self):
         str_id = str(self.catalogue_id)
@@ -261,36 +179,38 @@ class Equipment(models.Model):
     def __str__(self):
         digimed_id = self.get_digimed()
         return(f"{self.item_type} ({digimed_id})")
+    
 
-
-class Allocation(models.Model):
-    procedure = models.ForeignKey(
-        Procedure,
-        on_delete=models.CASCADE,
-        related_name='allocations'
-    )
-    product = models.ForeignKey(
-        'Equipment', 
-        on_delete=models.CASCADE
-    )
-    quantity = models.PositiveIntegerField()
-    is_replenishment = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
-    created_by = models.ForeignKey(
-        get_user_model(), 
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        related_name='allocation',
-    )
-    updated_at = models.DateTimeField(auto_now=True)
-    updated_by = models.ForeignKey(
-        get_user_model(), 
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        related_name='moified_allocations',
-    )
+class TrayType(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField()
 
     def __str__(self):
-        return f"{self.quantity} x {self.product}"
+        return self.name
+    
+
+class TrayItem(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='tray_items'
+    )
+    quantity = models.PositiveSmallIntegerField()
+    tray_type = models.ForeignKey(
+        TrayType,
+        on_delete=models.CASCADE,
+        related_name='tray_items'
+    )
+
+    class Meta:
+        unique_together = ('tray_type', 'product')
+
+    def __str__(self):
+        return f"{self.tray_type.name} - {self.product.name} ({self.quantity})"
+
+
+class Tray(models.Model):
+    code = models.CharField(max_length=25, unique=True)
+    tray_type = models.ForeignKey(TrayType, on_delete=models.CASCADE, related_name="trays")
+    def __str__(self):
+        return f"{self.code} - {self.tray_type.name}"

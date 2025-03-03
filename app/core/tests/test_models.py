@@ -5,10 +5,15 @@ from decimal import Decimal
 from django.urls import reverse
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 
-from .. models import (
-    Hospital, Doctor, Event, Procedure, Equipment, Allocation
+from core.models import (
+    Hospital, Doctor, Product, 
+    TrayType, TrayItem, Tray,
+)
+
+from event.models import (
+    Event, Procedure, Allocation
 )
 
 from django_countries.fields import Country
@@ -91,8 +96,8 @@ class ModelAdminTests(TestCase):
             user=self.user,
             practice_number=123456,
             comments='Experienced in cardiology.',
-            hospital=self.hospital
         )
+
     def test_hospitals_listed(self):
         """Test that hospitals are listed on the admin page"""
         url = reverse('admin:core_hospital_changelist')
@@ -131,15 +136,16 @@ class ModelAdminTests(TestCase):
         self.assertEqual(self.doctor.user, self.user)
         self.assertEqual(self.doctor.practice_number, 123456)
         self.assertEqual(self.doctor.comments, 'Experienced in cardiology.')
-        self.assertEqual(self.doctor.hospital, self.hospital)
     
-    def test_doctor_creation_no_hospital_error(self):
-        """Test that a doctor instance is created successfully."""
-
-        with self.assertRaises(ValidationError):
+    def test_doctor_creation_no_practice_error(self):
+        """Test that creating a doctor without practice no. raises error."""
+        user = get_user_model().objects.create(
+            email = 'test@example.com',
+            password = 'test@123'
+        )
+        with self.assertRaises(IntegrityError):
             Doctor.objects.create(
-                user=self.user,
-                practice_number=123456,
+                user=user,
                 comments='Experienced in neurology.'
         )
 
@@ -153,15 +159,21 @@ class ModelAdminTests(TestCase):
         event = Event.objects.create(
             created_by=self.user,
             doctor=self.doctor,
+            hospital=self.hospital,
         )
 
+        doctor_str = f'Dr. {event.doctor.user.surname}'
+        hospital_str = event.hospital.name
+        event_str = f'{doctor_str} - {hospital_str} (Event {event.id})'
         self.assertIsNotNone(event.created_by)
-        self.assertEqual(str(event), f"Event {event.id} (Dr. {event.doctor.user.surname})")
+        self.assertEqual(str(event), event_str)
 
     def test_create_procedure(self):
+        """Test creating a procedure is successful"""
         event = Event.objects.create(
             created_by=self.user,
             doctor=self.doctor,
+            hospital=self.hospital,
         )
 
         procedure = Procedure.objects.create(
@@ -176,41 +188,15 @@ class ModelAdminTests(TestCase):
         )
 
         str_test = f'Case {procedure.case_number} - for T. Test'
-
         self.assertEqual(str(procedure), str_test)
 
-
-    def test_create_product(self):
-        item = Equipment.objects.create(
-            catalogue_id = 9252517,
-            profile = 1.6,
-            item_type = 'plate', 
-            description = 'Titan Mircoplate',
-            base_price = Decimal('7841.36'),
-            vat_price = Decimal('9017.57'),
-        )
-
-        str_id = str(item.catalogue_id)
-        digimed_id = f'{str_id[:2]}-{str_id[2:5]}-{str_id[5:]}'
-      
-        str_test = f'{item.item_type} ({digimed_id})'
-        self.assertEqual(str(item), str_test)
-
-
-    def test_create_allocation(self):
-        item = Equipment.objects.create(
-            catalogue_id = 9252517,
-            profile = 1.6,
-            item_type = 'Plate',
-            description = 'Titan Mircoplate',
-            base_price = Decimal('7841.36'),
-            vat_price = Decimal('9017.57'),
-        )
-
+    def test_procedure_event_relationship(self):
+        """Test the relationship between a procedure and an event"""
         event = Event.objects.create(
             created_by=self.user,
             doctor=self.doctor,
-        )
+            hospital=self.hospital,
+        ) 
 
         procedure = Procedure.objects.create(
             created_by=self.user,
@@ -223,13 +209,134 @@ class ModelAdminTests(TestCase):
             ward=1
         )
 
-        allocation = Allocation.objects.create(
-            procedure=procedure,
-            is_replenishment=False,
-            product=item, 
-            quantity=2,
+        self.assertEqual(event, procedure.event)
+
+    def test_procedure_created_by_relationship(self):
+        """Test the relationship between a procedure and the user who created it"""
+        event = Event.objects.create(
+            created_by=self.user,
+            doctor=self.doctor,
+            hospital=self.hospital,
+        )   
+
+        procedure = Procedure.objects.create(
+            created_by=self.user,
+            patient_name='Test',
+            patient_surname='Test',
+            patient_age=18,
+            case_number='12/344343',
+            event=event,
+            description='A test procedure',
+            ward=1
         )
 
-        str_test = f'{allocation.quantity} x {allocation.product}'
+        self.assertEqual(self.user, procedure.created_by) 
 
-        self.assertEqual(str(allocation), str_test)
+    def test_create_product(self):
+        """Test creating a product is successful"""
+        product = Product.objects.create(
+            catalogue_id=123456,
+            profile=0.1,
+            item_type='Plate',
+            description='A test product',
+            base_price=Decimal('100.00'),
+            vat_price=Decimal('115.00'),
+        )
+        id = str(product.catalogue_id)
+        digimed_id = f'{id[:2]}-{id[2:5]}-{id[5:]}'
+
+        product_str = f'{product.item_type} ({digimed_id})'
+        self.assertEqual(str(product), product_str)
+
+    def test_create_tray_type(self):
+        """Test creating a tray type is successful"""
+        tray_type = TrayType.objects.create(
+            name='Test Tray Type',
+            description='A test tray type',
+        )
+
+        self.assertEqual(str(tray_type), tray_type.name)
+
+    def test_create_tray_item(self):        
+        """Test creating a tray item is successful"""
+        product = Product.objects.create(
+            catalogue_id=123456,
+            description='A test product',
+            profile=0.1,
+            item_type='Plate',
+            base_price=Decimal('100.00'),
+            vat_price=Decimal('115.00'),
+        )
+
+        tray_type = TrayType.objects.create(
+            name='Test Tray Type',
+            description='A test tray type',
+        )
+
+        tray_item = TrayItem.objects.create(
+            product=product,
+            tray_type=tray_type,
+            quantity=1,
+        )
+
+        self.assertEqual(tray_item.product.id, product.id)
+        self.assertEqual(tray_item.tray_type, tray_type)
+        self.assertEqual(tray_item.quantity, 1)
+
+    def test_create_tray(self):
+        """Test creating a tray is successful"""
+        tray_type = TrayType.objects.create(
+            name='Test Tray Type',
+            description='A test tray type',
+        )
+
+        tray = Tray.objects.create(
+            code='Test Tray',
+            tray_type=tray_type,
+        )
+
+        tray_str = f'{tray.code} - {tray.tray_type.name}'
+
+        self.assertEqual(tray.tray_type, tray_type)
+        self.assertEqual(str(tray), tray_str)
+
+    def test_create_allocation(self): 
+        """Test creating an allocation is successful"""
+        event = Event.objects.create(
+            created_by=self.user,
+            doctor=self.doctor,
+            hospital=self.hospital,
+        ) 
+
+        procedure = Procedure.objects.create(
+            created_by=self.user,
+            patient_name='Test',
+            patient_surname='Test',
+            patient_age=18,
+            case_number='12/344343',
+            event=event,
+            description='A test procedure',
+            ward=1
+        )
+
+        tray_type = TrayType.objects.create(
+            name='Test Tray Type',
+            description='A test tray type',
+        )
+
+
+        tray = Tray.objects.create(
+            code='Test Tray',
+            tray_type=tray_type,
+        )
+
+        allocation = Allocation.objects.create(
+            created_by=self.user,
+            procedure=procedure,
+            tray=tray,
+        )
+
+        self.assertEqual(allocation.created_by, self.user)
+        self.assertEqual(allocation.procedure, procedure)
+        self.assertEqual(allocation.tray, tray)
+     

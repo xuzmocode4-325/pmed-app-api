@@ -1,10 +1,13 @@
 
 import random
 import string
-import Decimal 
+from decimal import Decimal 
 from django.contrib.auth import get_user_model
 from core.models import (
-    Event, Doctor, Hospital, Procedure, Equipment
+    Doctor, Hospital
+)
+from event.models import (
+    Event, Procedure
 )
 
 from django_countries.fields import Country
@@ -48,21 +51,22 @@ def create_user(**args):
     return contact
 
 
-def create_doctor(user, hospital, **params):
+def create_doctor(user, **params):
     defaults = {
         'practice_number':123456,
         'comments':'Experienced in cardiology.',
         'is_verified':True
     }
     defaults.update(params)
-    doctor = Doctor.objects.create(user=user, hospital=hospital, **defaults)
+    doctor = Doctor.objects.create(user=user, **defaults)
     return doctor
 
 
-def create_event(created_by, doctor, **params):
+def create_event(created_by, doctor, hospital, **params):
     event = Event.objects.create(
         created_by=created_by,
         doctor=doctor,
+        hospital=hospital,
     )
     return event
 
@@ -114,7 +118,6 @@ def create_random_entities(verified=True):
         user=user,
         practice_number=random_number,
         comments=f'Comments for doctor {random_number}',
-        hospital=hospital,
         is_verified=verified, 
     )
     
@@ -133,29 +136,29 @@ def generate_random_patient_details():
     }
     return patient_details
 
-def generate_random_equipment():
-    # Randomly select a type and subtype
-    type_category = random.choice(list(Equipment.TYPE_CHOICES.keys()))
-    item_type = random.choice(list(Equipment.TYPE_CHOICES[type_category].values()))
+# def generate_random_equipment():
+#     # Randomly select a type and subtype
+#     type_category = random.choice(list(Equipment.TYPE_CHOICES.keys()))
+#     item_type = random.choice(list(Equipment.TYPE_CHOICES[type_category].values()))
 
-    # Generate random values for other fields
-    catalogue_id = random.randint(100000, 999999)  # Assuming a 6-digit catalogue ID
-    profile = round(random.uniform(0.1, 9.9), 1)  # Random profile with one decimal place
-    description = f"Random description for {item_type}"
-    base_price = round(Decimal(random.uniform(10.00, 1000.00)), 2)  # Random base price
-    vat_price = round(base_price * Decimal(1.2), 2)  # Assuming VAT is 20%
+#     # Generate random values for other fields
+#     catalogue_id = random.randint(100000, 999999)  # Assuming a 6-digit catalogue ID
+#     profile = round(random.uniform(0.1, 9.9), 1)  # Random profile with one decimal place
+#     description = f"Random description for {item_type}"
+#     base_price = round(Decimal(random.uniform(10.00, 1000.00)), 2)  # Random base price
+#     vat_price = round(base_price * Decimal(1.2), 2)  # Assuming VAT is 20%
 
-    # Create an Equipment instance
-    equipment = Equipment(
-        catalogue_id=catalogue_id,
-        profile=profile,
-        item_type=item_type,
-        description=description,
-        base_price=base_price,
-        vat_price=vat_price
-    )
+#     # Create an Equipment instance
+#     equipment = Equipment(
+#         catalogue_id=catalogue_id,
+#         profile=profile,
+#         item_type=item_type,
+#         description=description,
+#         base_price=base_price,
+#         vat_price=vat_price
+#     )
 
-    equipment.save()
+#     equipment.save()
 
-    return equipment
+#     return equipment
 

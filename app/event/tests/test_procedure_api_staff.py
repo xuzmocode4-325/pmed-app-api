@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Procedure
+from event.models import Procedure
 
 from event.serializers import ProcedureSerializer
 
@@ -39,17 +39,17 @@ class StaffProcedureApiTests(TestCase):
     def test_retrieve_procedures(self):
         """Test retrieving a list of all procedures"""
         u1, h1, d1 = create_random_entities()
-        e1  = create_event(created_by=u1, doctor=d1)
+        e1  = create_event(created_by=u1, doctor=d1, hospital=h1)
         patient_details1 = generate_random_patient_details()
         create_procedure(event=e1, **patient_details1)
 
         u2, h2, d2 = create_random_entities()
-        e2 = create_event(u2, d2)
+        e2 = create_event(u2, d2, h2)
         patient_details2 = generate_random_patient_details()
         create_procedure(event=e2, **patient_details2)
 
         u3, h3, d3 = create_random_entities()
-        e3  = create_event(u3, d3)
+        e3  = create_event(u3, d3, h3)
         patient_details3 = generate_random_patient_details()
         create_procedure(event=e3, **patient_details3)
 
@@ -63,11 +63,11 @@ class StaffProcedureApiTests(TestCase):
     def test_procedures_unlimited(self):
         """Test list of procedures is not limited to staff user"""
 
-        e0 = create_event(self.user, self.doctor)
+        e0 = create_event(self.user, self.doctor, self.hospital)
         patient_details1 = generate_random_patient_details()
         procedure2 = create_procedure(e0, **patient_details1)
 
-        e1 = create_event(self.staff_user, self.doctor)
+        e1 = create_event(self.staff_user, self.doctor, self.hospital)
         patient_details2 = generate_random_patient_details()
         procedure1 = create_procedure(event=e1, **patient_details2)
 
@@ -83,7 +83,7 @@ class StaffProcedureApiTests(TestCase):
     def test_update_procedure(self):
         """Test staff updating a user procedure"""
         
-        e0 = create_event(created_by=self.user, doctor=self.doctor)
+        e0 = create_event(created_by=self.user, doctor=self.doctor, hospital=self.hospital)
         patient_details = generate_random_patient_details()
         procedure = create_procedure(event=e0, **patient_details)
         
@@ -102,7 +102,7 @@ class StaffProcedureApiTests(TestCase):
 
     def test_delete_procedure(self):
         """Test staff deleting a user procedure"""
-        e0 = create_event(created_by=self.user, doctor=self.doctor)
+        e0 = create_event(created_by=self.user, doctor=self.doctor, hospital=self.hospital)
         patient_details = generate_random_patient_details()
         procedure = create_procedure(event=e0, **patient_details)
         

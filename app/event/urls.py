@@ -9,7 +9,6 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register('events', views.EventViewSet)
 router.register('procedures', views.ProcedureViewSet)
-router.register('allocations', views.AllocationViewSet)
 
 app_name = 'event'
 

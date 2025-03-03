@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Procedure
+from event.models import Procedure
 
 from event.serializers import ProcedureSerializer
 
@@ -31,7 +31,8 @@ class DoctorProcedureApiTests(TestCase):
         self.client.force_authenticate(user=self.user)
         self.event = create_event(
             self.user,
-            self.doctor
+            self.doctor,
+            self.hospital
         )
 
     def test_retrieve_procedures(self):
@@ -56,7 +57,7 @@ class DoctorProcedureApiTests(TestCase):
         """Test list of procedures is limited to authenticated user"""
 
         u1, h1, d1 = create_random_entities()
-        event1 = create_event(u1, d1)
+        event1 = create_event(u1, d1, h1)
         patient_details1 = generate_random_patient_details()
         create_procedure(event1, **patient_details1)
 

@@ -2,13 +2,15 @@
 Django admin customisation
 """
 from core.models import (
-     User, Hospital, Event, Doctor, 
-     Procedure, Equipment, Allocation
+    User, Hospital, Doctor, 
+    Product, TrayType, TrayItem, Tray
 )
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils.translation import gettext_lazy as _
 
 
+@admin.register(User)
 class CustomUserAdmin(BaseUserAdmin):
     """Define the admin pages for users"""
     
@@ -80,50 +82,20 @@ class CustomUserAdmin(BaseUserAdmin):
 
         return super().changelist_view(request, extra_context=extra_context)
        
-
+@admin.register(Hospital)
 class HospitalAdmin (admin.ModelAdmin):
     list_display = ('name', 'city', 'country',)  
     search_fields = ('name', 'city', 'country',)  
 
 
-class EventAdmin (admin.ModelAdmin):
-    # Fields to display in the user list view
-    list_display = (
-        'doctor', 'get_hospital', 'description', 'created_by')
-    search_fields = (
-        'created_by__firstname', 'created_by__surname', 
-        'doctor__user__surname', 'description', 
-    )
-    readonly_fields = [
-        'created_by', 'created_at', 'updated_by', 'updated_at'
-    ]
-
-    def get_hospital(self, obj):
-        """Return the first name of the associated user."""
-        return obj.doctor.hospital
-    get_hospital.short_description = 'Hospital'
-
-    def get_doctor(self, obj):
-        """Return the first name of the associated user."""
-        return f"Dr {obj.doctor.user.surname}"
-    get_doctor.short_description = 'Doctor'
-
-    def save_model(self, request, obj, form, change):
-        """Override save_model to set created_by to the current user."""
-        if not change or not obj.created_by:
-            obj.created_by = request.user
-        obj.updated_by = request.user
-        super().save_model(request, obj, form, change)
-
-
+@admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
     list_display = (
-        'get_firstname', 'get_surname', 'practice_number', 
-        'hospital', 'is_verified')
+        'get_firstname', 'get_surname', 'practice_number', 'is_verified'
+    )
     list_filter = ('is_verified',)
     search_fields = (
-        'practice_number', 'hospital__name',
-        'user__firstname', 'user__surname',
+        'practice_number', 'user__firstname', 'user__surname',
     )
     
     def get_firstname(self, obj):
@@ -137,73 +109,61 @@ class DoctorAdmin(admin.ModelAdmin):
     get_surname.short_description = 'Surname'
 
 
-class ProcedureAdmin(admin.ModelAdmin):
-    list_display = (
-        'patient_name', 'patient_surname', 'case_number' ,'get_doctor',
-    )
-    search_fields = (
-        'patient_name', 'patient_surname', 'case_number',
-        'event__doctor__user__surname',
-    )
-    readonly_fields = [
-        'created_by', 'created_at', 'updated_by', 'updated_at'
-    ]
-
-    def get_doctor(self, obj):
-        """Return the doctor associated with the procedure"""
-        initial = obj.event.doctor.user.firstname[0]
-        surname = obj.event.doctor.user.surname
-        return f"Dr. {initial}. {surname}"
-    get_doctor.short_description = 'Owned By'
-    
-    def save_model(self, request, obj, form, change):
-        """Override save_model to set created_by to the current user."""
-        if not change or not obj.created_by:
-            obj.created_by = request.user
-        obj.updated_by = request.user
-        super().save_model(request, obj, form, change)
+# Inline Admin for TrayTypeProduct (Product & Quantity in TrayType)
+class TrayItemInline(admin.TabularInline):  # or admin.StackedInline
+    model = TrayItem
+    extra = 1  # Allows adding new related products easily
+    autocomplete_fields = ['product']
+    min_num = 1  # Ensures at least one product is added
+    fields = ('product', 'quantity')
 
 
-class EquipmentAdmin(admin.ModelAdmin):
-    list_display = (
-        'catalogue_id', 'get_digimed', 'profile', 
-        'item_type', 'description',
-    )
-    search_fields = ('catalogue_id', 'item_type',)
+# Custom filter for Item Type since choices are nested
+class ItemTypeFilter(admin.SimpleListFilter):
+    title = _("Item Type")
+    parameter_name = "item_type"
+
+    def lookups(self, request, model_admin):
+        """Flattens TYPE_CHOICES for filtering"""
+        choices = []
+        for category, sub_choices in Product.TYPE_CHOICES.items():
+            for key, value in sub_choices.items():
+                choices.append((key, f"{category} - {value}"))
+        return choices
+
+    def queryset(self, request, queryset):
+        """Filter queryset based on selection"""
+        if self.value():
+            return queryset.filter(item_type=self.value())
+        return queryset
+
+# Admin class for Product model
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ("catalogue_id", "get_digimed", "item_type", "description", "base_price", "vat_price")
+    search_fields = ("catalogue_id", "item_type", "description")
+    list_filter = (ItemTypeFilter,)
+    ordering = ("catalogue_id",)
+    readonly_fields = ("get_digimed",)  # Ensures Digimed ID is displayed but not editable
+    list_per_page = 20  # Pagination for better admin usability
 
     def get_digimed(self, obj):
-        str_id = str(obj.catalogue_id)
-        digimed_id = f'{str_id[:2]}-{str_id[2:5]}-{str_id[5:]}'
-        return digimed_id
-    get_digimed.short_description = 'Digimed ID'
-    
+        return obj.get_digimed()
 
-class AllocationAdmin(admin.ModelAdmin):
-    list_display = (
-        'product', 'quantity', 'procedure', 'is_replenishment', 
-        'get_doctor',
-    )
-    search_fields = (
-        'product__item_type', 'procedure__patient_name',
-        'procedure__patient_surname', 'procedure__case_number',
-        'procedure__event__doctor__user__surname')
-    readonly_fields = [
-        'created_by', 'created_at', 'updated_by', 'updated_at'
-    ]
+    get_digimed.short_description = "Digimed ID"  # Display name in admin
 
-    def get_doctor(self, obj):
-        """Return the doctor associated with the procedure"""
-        initial = obj.procedure.event.doctor.user.firstname[0]
-        surname = obj.procedure.event.doctor.user.surname
-        return f"Dr. {initial} {surname}"
-    get_doctor.short_description = 'Assigned To'
-    
 
-# Register the custom user admin with the User model
-admin.site.register(User, CustomUserAdmin)
-admin.site.register(Hospital, HospitalAdmin)
-admin.site.register(Event, EventAdmin)
-admin.site.register(Doctor, DoctorAdmin)
-admin.site.register(Procedure, ProcedureAdmin)
-admin.site.register(Equipment, EquipmentAdmin)
-admin.site.register(Allocation, AllocationAdmin)
+@admin.register(TrayType)
+class TrayTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+    search_fields = ('name',)
+    ordering = ('name',)
+    inlines = [TrayItemInline]  # Embeds Product-Quantity table inside TrayType admin
+
+@admin.register(Tray)
+class TrayAdmin(admin.ModelAdmin):
+    list_display = ('code', 'tray_type')
+    search_fields = ('code',)
+    list_filter = ('tray_type',)
+    autocomplete_fields = ['tray_type']
+    ordering = ('code',)

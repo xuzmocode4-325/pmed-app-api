@@ -6,7 +6,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Event
+from event.models import Event
 from event.serializers import (
     EventSerializer,
     EventDetailSerializer
@@ -38,6 +38,7 @@ class UnverifiedDoctorEventApiTests(TestCase):
         create_event(
             created_by=self.user,
             doctor=self.doctor,
+            hospital=self.hospital,
         )
 
         res = self.client.get(EVENTS_URL)
@@ -63,11 +64,13 @@ class VerifiedDoctorEventApiTests(TestCase):
         """Test retrieving a list of events."""
         create_event(
             created_by=self.user,
-            doctor=self.doctor, 
+            doctor=self.doctor,
+            hospital=self.hospital, 
         )
         create_event(
             created_by=self.user, 
             doctor=self.doctor, 
+            hospital=self.hospital,
         )
 
         res = self.client.get(EVENTS_URL)
@@ -86,10 +89,12 @@ class VerifiedDoctorEventApiTests(TestCase):
         create_event(
             created_by=u1,
             doctor=d1, 
+            hospital=h1,
         )
         create_event(
             created_by=self.user,
             doctor=self.doctor, 
+            hospital=self.hospital,
         )
 
         res = self.client.get(EVENTS_URL)
@@ -104,6 +109,7 @@ class VerifiedDoctorEventApiTests(TestCase):
         event = create_event(
             created_by=self.user,
             doctor=self.doctor, 
+            hospital=self.hospital,
         )
 
         url = event_detail_url(event.id)
@@ -116,7 +122,8 @@ class VerifiedDoctorEventApiTests(TestCase):
         """Test creating an event via API"""
         payload = {
             'doctor': int(self.doctor.id),
-            'description': '4 procedures'
+            'description': '4 procedures',
+            'hospital': int(self.hospital.id),
         }
 
         res = self.client.post(EVENTS_URL, payload)
@@ -124,7 +131,7 @@ class VerifiedDoctorEventApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         event = Event.objects.get(id=res.data['id'])
         for k, v in payload.items():
-            if k == 'doctor':
+            if k in ['doctor', 'hospital']:
                 self.assertEqual(getattr(event, k).id, v)  # Compare Doctor IDs
             else:
                 self.assertEqual(getattr(event, k), v)
@@ -138,6 +145,7 @@ class VerifiedDoctorEventApiTests(TestCase):
             created_by=self.user,
             doctor=self.doctor,
             description='Test Event Description',
+            hospital=self.hospital,
         )
 
         payload = {'description': 'New Event Description'}
@@ -156,7 +164,11 @@ class VerifiedDoctorEventApiTests(TestCase):
     def test_update_user_returns_error(self):
         """Test changing the event user results in an error"""
         u1, h1, d1 =  create_random_entities()
-        event = create_event(created_by=self.user, doctor=self.doctor)
+        event = create_event(
+            created_by=self.user, 
+            doctor=self.doctor,
+            hospital=self.hospital,
+        )
 
         payload = {'created_by': u1.id}
         url = event_detail_url(event.id)
@@ -168,7 +180,7 @@ class VerifiedDoctorEventApiTests(TestCase):
 
     def test_delete_event(self):
         """Test deleting a event successful"""
-        event = create_event(created_by=self.user, doctor=self.doctor)
+        event = create_event(created_by=self.user, doctor=self.doctor, hospital=self.hospital)
 
         url = event_detail_url(event.id)
         res = self.client.delete(url)
@@ -183,6 +195,7 @@ class VerifiedDoctorEventApiTests(TestCase):
         event = create_event(
             created_by=u1,
             doctor=d1, 
+            hospital=h1,
         )
 
         url = event_detail_url(event.id)

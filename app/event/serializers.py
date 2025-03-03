@@ -3,18 +3,8 @@ Serializers for events APIs
 """
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
-from core.models import Event, Procedure, Allocation
+from .models import Event, Procedure
 
-
-class AllocationSerializer(serializers.ModelSerializer):
-    """Serilaizer for allocations"""
-
-    class Meta:
-        model = Allocation
-        fields = ['id', 'procedure', 'product', 'quantity']
-        read_only_fields = [
-            'id', 'is_replenishment'
-        ]
 
 
 class ProcedureSerializer(serializers.ModelSerializer):
@@ -36,7 +26,7 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            'id', 'doctor', 'created_at', 
+            'id', 'doctor', 'created_at', 'hospital',
             'updated_at', 'created_by', 'updated_by',
         ]
         read_only_fields = [
