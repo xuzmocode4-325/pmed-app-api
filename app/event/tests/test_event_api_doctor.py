@@ -166,6 +166,7 @@ class VerifiedDoctorEventApiTests(TestCase):
         )
 
         payload = {'description': 'New Event Description'}
+
         url = event_detail_url(event.id)
         res = self.client.patch(url, payload)
 
