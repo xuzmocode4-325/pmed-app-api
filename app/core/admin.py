@@ -84,14 +84,14 @@ class CustomUserAdmin(BaseUserAdmin):
        
 @admin.register(Hospital)
 class HospitalAdmin (admin.ModelAdmin):
-    list_display = ('name', 'city', 'country',)  
+    list_display = ('id', 'name', 'city', 'country',)  
     search_fields = ('name', 'city', 'country',)  
 
 
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
     list_display = (
-        'get_firstname', 'get_surname', 'practice_number', 'is_verified'
+        'id', 'get_firstname', 'get_surname', 'practice_number', 'is_verified'
     )
     list_filter = ('is_verified',)
     search_fields = (
@@ -120,8 +120,8 @@ class TrayItemInline(admin.TabularInline):  # or admin.StackedInline
 
 # Custom filter for Item Type since choices are nested
 class ItemTypeFilter(admin.SimpleListFilter):
-    title = _("Item Type")
-    parameter_name = "item_type"
+    title = _('Item Type')
+    parameter_name = 'item_type'
 
     def lookups(self, request, model_admin):
         """Flattens TYPE_CHOICES for filtering"""
@@ -140,17 +140,17 @@ class ItemTypeFilter(admin.SimpleListFilter):
 # Admin class for Product model
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("catalogue_id", "get_digimed", "item_type", "description", "base_price", "vat_price")
-    search_fields = ("catalogue_id", "item_type", "description")
+    list_display = ('id', 'catalogue_id', 'get_digimed', 'item_type', 'description', 'base_price', 'vat_price')
+    search_fields = ('catalogue_id', 'item_type', 'description')
     list_filter = (ItemTypeFilter,)
-    ordering = ("catalogue_id",)
-    readonly_fields = ("get_digimed",)  # Ensures Digimed ID is displayed but not editable
+    ordering = ('catalogue_id',)
+    readonly_fields = ('get_digimed',)  # Ensures Digimed ID is displayed but not editable
     list_per_page = 20  # Pagination for better admin usability
 
     def get_digimed(self, obj):
         return obj.get_digimed()
 
-    get_digimed.short_description = "Digimed ID"  # Display name in admin
+    get_digimed.short_description = 'Digimed ID'  # Display name in admin
 
 
 @admin.register(TrayType)
