@@ -39,8 +39,7 @@ class Event(models.Model):
         get_user_model(),
         on_delete=models.DO_NOTHING,
         related_name='modified_events',
-        null=True,
-        blank=True
+        null=True
     )
     objects = EventManager()
 
@@ -51,7 +50,10 @@ class Event(models.Model):
             raise ValidationError("Each event needs to be assigned a hospital.")
         
     def __str__(self):
-        return f"Dr. {self.doctor.user.surname} Event ({self.id})"
+        id = self.id
+        doc_surname = self.doctor.user.surname
+        hospital = self.hospital.name
+        return f"Event #{id}: Dr. {doc_surname} @{hospital}"
 
 
 class Procedure(models.Model):
@@ -72,23 +74,22 @@ class Procedure(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         get_user_model(), 
-        null=True,
-        blank=True,
         on_delete=models.DO_NOTHING,
         related_name='procedure',
     )
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(
         get_user_model(), 
-        null=True,
-        blank=True,
         on_delete=models.DO_NOTHING,
         related_name='updated_procedures',
+        null=True,
     )
 
     def __str__(self):
         case_ = self.case_number
-        return f"Case {case_}"        
+        name = self.patient_name[0] 
+        surname = self.patient_surname
+        return f"Case #{case_}: {name}. {surname}"        
 
 
 class Allocation(models.Model):
@@ -106,18 +107,15 @@ class Allocation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     created_by = models.ForeignKey(
         get_user_model(), 
-        null=True,
-        blank=True,
         on_delete=models.DO_NOTHING,
         related_name='allocation',
     )
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(
         get_user_model(), 
-        null=True,
-        blank=True,
         on_delete=models.DO_NOTHING,
         related_name='updated_allocations',
+        null=True,
     )
 
     def __str__(self):
@@ -141,18 +139,15 @@ class Inventory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     created_by = models.ForeignKey(
         get_user_model(), 
-        null=True,
-        blank=True,
         on_delete=models.DO_NOTHING,
         related_name='inventory',
     )
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(
         get_user_model(), 
-        null=True,
-        blank=True,
         on_delete=models.DO_NOTHING,
         related_name='updated_inventory',
+        null=True,
     )
 
     def __str__(self):
