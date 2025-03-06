@@ -162,9 +162,11 @@ class ModelAdminTests(TestCase):
             hospital=self.hospital,
         )
 
-        doctor_str = f'Dr. {event.doctor.user.surname}'
-        hospital_str = event.hospital.name
-        event_str = f'{doctor_str} - {hospital_str} (Event {event.id})'
+        id = event.id
+        doc_surname = f'Dr. {event.doctor.user.surname}'
+        hospital = event.hospital.name
+        event_str = f'Event #{id}: {doc_surname} @{hospital}'
+
         self.assertIsNotNone(event.created_by)
         self.assertEqual(str(event), event_str)
 
@@ -176,18 +178,21 @@ class ModelAdminTests(TestCase):
             hospital=self.hospital,
         )
 
+        name = 'Test'
+        surname = 'Patient'
         procedure = Procedure.objects.create(
             created_by=self.user,
-            patient_name='Test',
-            patient_surname='Test',
+            patient_name=name,
+            patient_surname=surname,
             patient_age=18,
             case_number='12/344343',
             event=event,
             description='A test procedure',
             ward=1
         )
+        case_no = procedure.case_number
 
-        str_test = f'Case {procedure.case_number} - for T. Test'
+        str_test = f'Case #{case_no}: {name[0]}. {surname}'
         self.assertEqual(str(procedure), str_test)
 
     def test_procedure_event_relationship(self):
@@ -295,7 +300,7 @@ class ModelAdminTests(TestCase):
             tray_type=tray_type,
         )
 
-        tray_str = f'{tray.code} - {tray.tray_type.name}'
+        tray_str = f'{tray.code}: {tray.tray_type.name}'
 
         self.assertEqual(tray.tray_type, tray_type)
         self.assertEqual(str(tray), tray_str)
