@@ -4,7 +4,7 @@ import string
 from decimal import Decimal 
 from django.contrib.auth import get_user_model
 from core.models import (
-    Doctor, Hospital
+    Doctor, Hospital, Product
 )
 from event.models import (
     Event, Procedure
@@ -136,29 +136,45 @@ def generate_random_patient_details():
     }
     return patient_details
 
-# def generate_random_equipment():
-#     # Randomly select a type and subtype
-#     type_category = random.choice(list(Equipment.TYPE_CHOICES.keys()))
-#     item_type = random.choice(list(Equipment.TYPE_CHOICES[type_category].values()))
+def generate_random_product():
+    """
+    Generates a random product instance with randomly selected attributes.
 
-#     # Generate random values for other fields
-#     catalogue_id = random.randint(100000, 999999)  # Assuming a 6-digit catalogue ID
-#     profile = round(random.uniform(0.1, 9.9), 1)  # Random profile with one decimal place
-#     description = f"Random description for {item_type}"
-#     base_price = round(Decimal(random.uniform(10.00, 1000.00)), 2)  # Random base price
-#     vat_price = round(base_price * Decimal(1.2), 2)  # Assuming VAT is 20%
+    This function randomly selects a type and subtype from the predefined 
+    choices in the Product class. It also generates random values for 
+    catalogue ID, profile, description, base price, and VAT price. 
+    Finally, it creates a Product instance with these values and saves it 
+    to the database.
 
-#     # Create an Equipment instance
-#     equipment = Equipment(
-#         catalogue_id=catalogue_id,
-#         profile=profile,
-#         item_type=item_type,
-#         description=description,
-#         base_price=base_price,
-#         vat_price=vat_price
-#     )
+    The generated catalogue ID is a 6-digit integer, the profile is a 
+    float rounded to one decimal place, the base price is a random 
+    decimal between 10.00 and 1000.00, and the VAT price is calculated 
+    as 20% of the base price.
 
-#     equipment.save()
+    Returns:
+        None
+    """
+    # Randomly select a type and subtype
+    type_category = random.choice(list(Product.TYPE_CHOICES.keys()))
+    item_type = random.choice(list(Product.TYPE_CHOICES[type_category].values()))
 
-#     return equipment
+    # Generate random values for other fields
+    catalogue_id = random.randint(100000, 999999)  # Assuming a 6-digit catalogue ID
+    profile = round(random.uniform(0.1, 9.9), 1)  # Random profile with one decimal place
+    description = f"Random description for {item_type}"
+    base_price = round(Decimal(random.uniform(10.00, 1000.00)), 2)  # Random base price
+    vat_price = round(base_price * Decimal(1.2), 2)  # Assuming VAT is 20%
+
+    # Create an Product instance
+    product = Product(
+        catalogue_id=catalogue_id,
+        profile=profile,
+        item_type=item_type,
+        description=description,
+        base_price=base_price,
+        vat_price=vat_price
+    )
+
+    product.save()
+    return product
 
