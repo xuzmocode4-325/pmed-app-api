@@ -21,7 +21,7 @@ def procedure_detail_url(procedure_id):
     return reverse('event:procedure-detail', args=[procedure_id])
 
 class StaffProcedureApiTests(TestCase):
-    """Test authenticated API requests"""
+    """Test authenticated staff API requests"""
 
     def setUp(self):
         """Set up the test client and create necessary data."""

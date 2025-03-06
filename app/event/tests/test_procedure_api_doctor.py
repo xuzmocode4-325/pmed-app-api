@@ -9,8 +9,8 @@ from event.models import Procedure
 from event.serializers import ProcedureSerializer
 
 from .helper_for_event_tests import (
-    create_event, 
-    create_procedure, create_random_entities,
+    create_event, create_procedure, 
+    create_random_entities,
     generate_random_patient_details
 )
 
