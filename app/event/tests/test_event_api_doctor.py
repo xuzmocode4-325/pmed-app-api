@@ -6,7 +6,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from event.models import Event
+from event.models import Event, Doctor
 from event.serializers import (
     EventSerializer,
     EventDetailSerializer
@@ -59,6 +59,11 @@ class VerifiedDoctorEventApiTests(TestCase):
         self.client = APIClient()
         self.user, self.hospital, self.doctor = create_random_entities()
         self.client.force_authenticate(user=self.user)
+
+    def test_user_doctor_relationship(self):
+        """Test that the authenticated user is a doctor."""
+        doctor = Doctor.objects.get(user=self.user)
+        self.assertEqual(doctor, self.doctor)
 
     def test_doctor_retrieve_events(self):
         """Test retrieving a list of events."""
@@ -137,6 +142,18 @@ class VerifiedDoctorEventApiTests(TestCase):
                 self.assertEqual(getattr(event, k), v)
         self.assertEqual(event.created_by, self.user)
 
+    def test_create_other_doctor_event_returns_error(self):
+        """Test that creating an event for another doctor returns an error"""
+        u1, h1, d1 = create_random_entities()
+        payload = {
+            'doctor': int(d1.id),
+            'description': '4 procedures',
+            'hospital': int(h1.id),
+        }
+
+        res = self.client.post(EVENTS_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
 
     def test_partial_update(self):
         """Test partial update of a event"""
@@ -159,8 +176,6 @@ class VerifiedDoctorEventApiTests(TestCase):
         self.assertEqual(event.updated_by, self.user)
 
 
-    #def test_full_update()
-
     def test_update_user_returns_error(self):
         """Test changing the event user results in an error"""
         u1, h1, d1 =  create_random_entities()
@@ -177,6 +192,36 @@ class VerifiedDoctorEventApiTests(TestCase):
         event.refresh_from_db()
 
         self.assertEqual(event.created_by, self.user)
+
+    def test_update_doctor_returns_error(self):
+        """Test that updating an event's doctor returns an error"""
+        u1, h1, d1 = create_random_entities()
+        event = create_event(
+            created_by=self.user,
+            doctor=self.doctor,
+            hospital=self.hospital,
+        )
+
+        payload = {'doctor': d1.id}
+        url = event_detail_url(event.id)
+
+        res = self.client.patch(url, payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_other_doctor_event_returns_error(self):
+        """Test that updating an event for another doctor returns an error"""
+        u1, h1, d1 = create_random_entities()
+        event = create_event(
+            created_by=u1,
+            doctor=d1,
+            hospital=h1,
+        )
+
+        payload = {'description': 'New description'}
+        url = event_detail_url(event.id)
+
+        res = self.client.patch(url, payload)
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_delete_event(self):
         """Test deleting a event successful"""
@@ -203,3 +248,4 @@ class VerifiedDoctorEventApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Event.objects.filter(id=event.id).exists())
+
