@@ -8,7 +8,8 @@ from event.models import (
 class EventAdmin (admin.ModelAdmin):
     # Fields to display in the user list view
     list_display = (
-        'doctor', 'hospital', 'description', 'created_by')
+        'doctor', 'hospital', 'description', 'created_by', 
+        'created_at')
     search_fields = (
         'created_by__firstname', 'created_by__surname', 
         'doctor__user__surname', 'description', 'hospital__name'
@@ -30,12 +31,11 @@ class EventAdmin (admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-
 @admin.register(Procedure)
 class ProcedureAdmin(admin.ModelAdmin):
     list_display = (
         'patient_name', 'patient_surname', 'case_number',
-        'get_doctor', 'get_hospital'
+        'get_doctor', 'get_hospital', 'created_at'
     )
     list_filter = (
         'event__hospital__name', 
@@ -78,5 +78,16 @@ class AllocationAdmin(admin.ModelAdmin):
     list_display = ('tray', 'created_by')
     search_fields = ('tray__code',)
     list_filter = ('created_by',)
+    readonly_fields = [
+        'created_by', 'created_at', 'updated_by', 'updated_at'
+    ]
     autocomplete_fields = ['tray']
     ordering = ('-created_at',)  # Newest allocations first
+
+    def save_model(self, request, obj, form, change):
+        """Override save_model to set created_by to the current user."""
+        if not change or not obj.created_by:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
+
