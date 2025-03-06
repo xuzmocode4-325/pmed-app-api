@@ -28,10 +28,8 @@ class Event(models.Model):
     )
     hospital = models.ForeignKey(
         Hospital,
-        on_delete=models.SET_NULL,
+        on_delete=models.DO_NOTHING,
         related_name='events',
-        null=True,  # Allow the hospital field to be nullable
-        blank=True  # Allow the hospital field to be optional in forms
     )
     description = models.TextField(null=True, blank=True)
     # Add additional fields for the Event model as needed
@@ -53,7 +51,7 @@ class Event(models.Model):
             raise ValidationError("Each event needs to be assigned a hospital.")
         
     def __str__(self):
-        return f"Dr. {self.doctor.user.surname} - {self.hospital.name} (Event {self.id})"
+        return f"Dr. {self.doctor.user.surname} Event ({self.id})"
 
 
 class Procedure(models.Model):
@@ -90,9 +88,7 @@ class Procedure(models.Model):
 
     def __str__(self):
         case_ = self.case_number
-        patient = self.patient_name[0]
-        surname = self.patient_surname
-        return f"Case {case_} - for {patient}. {surname}"        
+        return f"Case {case_}"        
 
 
 class Allocation(models.Model):
@@ -126,6 +122,41 @@ class Allocation(models.Model):
 
     def __str__(self):
         return f"{self.tray} for {self.procedure}"
+    
+    def save(self, *args, **kwargs):
+        """Override save method to modify the updated_by field."""
+        if 'request' in kwargs:
+            self.updated_by = kwargs.pop('request').user
+        super().save(*args, **kwargs)
+
+
+class Inventory(models.Model):
+    tray = models.ForeignKey(
+        Tray,
+        on_delete=models.CASCADE,
+        related_name='inventory'
+    )
+    item = models.CharField(max_length=255)
+    quantity = models.PositiveSmallIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    created_by = models.ForeignKey(
+        get_user_model(), 
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        related_name='inventory',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        get_user_model(), 
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        related_name='updated_inventory',
+    )
+
+    def __str__(self):
+        return f"{self.item} - {self.quantity} in {self.tray}"
     
     def save(self, *args, **kwargs):
         """Override save method to modify the updated_by field."""
