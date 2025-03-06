@@ -39,9 +39,9 @@ class EventViewSet(viewsets.ModelViewSet):
         """Retrieve events for authenticated users"""
         if self.request.user.is_staff:
             # If the user is a staff member, return all events
-            return self.queryset.order_by('-created_at')
+            return self.queryset.order_by('-id')
         # Otherwise, return only the events created by the user
-        return self.queryset.filter(doctor=self.request.user.doctor).order_by('-created_at')
+        return self.queryset.filter(doctor=self.request.user.doctor).order_by('-id')
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -54,49 +54,51 @@ class EventViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
 
-class ProcedureViewSet(
+class BaseEventExtensionModel( 
     mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
     mixins.ListModelMixin,
-    viewsets.GenericViewSet
-    ):
+    viewsets.GenericViewSet):
+
+    autentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthorized]
+
+    def perform_create(self, serializer):
+        """Create new allocation"""
+        serializer.save(created_by=self.request.user)
+
+
+class ProcedureViewSet(BaseEventExtensionModel):
     
     serializer_class = serializers.ProcedureSerializer
     queryset = Procedure.objects.all()
-    autentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthorized]
 
     def get_queryset(self):
         """Filter queryset to authenticated user"""
         user = self.request.user
         if user.is_staff:
-            # If the user is a staff member, return all events
-            return self.queryset.order_by('-created_at')
+            # If the user is a staff member, return all procedures
+            return self.queryset.order_by('-id')
          # Otherwise, return only the procedures related to events assigned to the doctor's profile
         return self.queryset.filter(
-            event__doctor__user=user
-        ).order_by('-created_at')
+            event__doctor=user.doctor
+        ).order_by('-id')
     
 
-class AllocationViewSet(viewsets.ModelViewSet):
+class AllocationViewSet(BaseEventExtensionModel):
     """View for allocation API management"""
     serializer_class = serializers.AllocationSerializer
     queryset = Allocation.objects.all()
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthorized]
 
     def get_queryset(self):
         """Retrieve allocations for authenticated users"""
         user = self.request.user
         if user.is_staff:
             # If the user is a staff member, return all allocations
-            return self.queryset.order_by('-created_at')
-        # Otherwise, return only the allocations created by the user
+            return self.queryset.order_by('-id')
+        # Otherwise, return only the allocations related to procedures assigned to the doctor's profile
         return self.queryset.filter(
-            event__doctor__user=user
-        ).order_by('-created_at')
+            procedure__event__doctor=user.doctor
+        ).order_by('-id')
     
-    def perform_create(self, serializer):
-        """Create new allocation"""
-        serializer.save(created_by=self.request.user)
-    
+   
