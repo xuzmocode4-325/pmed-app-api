@@ -108,8 +108,6 @@ class Doctor(models.Model):
         related_name='doctor',
         limit_choices_to=(
             Q(is_staff=False) 
-            & ~Q(is_superuser=False) 
-            & ~Q(is_active=True) 
             & ~Q(doctor__isnull=False) 
         )
     )
@@ -185,6 +183,9 @@ class TrayType(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
 
+    class Meta:
+        verbose_name_plural = "Tray Types"
+
     def __str__(self):
         return self.name
     
@@ -206,11 +207,13 @@ class TrayItem(models.Model):
         unique_together = ('tray_type', 'product')
 
     def __str__(self):
-        return f"{self.tray_type.name} - {self.product.name} ({self.quantity})"
+        return f"{self.tray_type.name} - {self.product.item_type} ({self.quantity})"
 
 
 class Tray(models.Model):
     code = models.CharField(max_length=25, unique=True)
     tray_type = models.ForeignKey(TrayType, on_delete=models.CASCADE, related_name="trays")
     def __str__(self):
-        return f"{self.code} - {self.tray_type.name}"
+        return f"{self.code}: {self.tray_type.name}"
+    
+  
