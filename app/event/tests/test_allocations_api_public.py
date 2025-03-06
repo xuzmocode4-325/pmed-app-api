@@ -6,9 +6,6 @@ from rest_framework.test import APIClient
 
 ALLOCATIONS_URL = reverse('event:allocation-list')
 
-def allocation_detail_url(procedure_id):
-    """Create and return a procedure detail url"""
-    return reverse('event:allocation-detail', args=[procedure_id])
 
 class PublicProceduresApiTest(TestCase):
     """Test unauthenticated API requests"""
