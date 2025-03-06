@@ -4,10 +4,10 @@ import string
 from decimal import Decimal 
 from django.contrib.auth import get_user_model
 from core.models import (
-    Doctor, Hospital, Product
+    Doctor, Hospital, Product, TrayType, TrayItem, Tray
 )
 from event.models import (
-    Event, Procedure
+    Event, Procedure, Allocation
 )
 
 from django_countries.fields import Country
@@ -77,6 +77,7 @@ def create_user(**params):
 
 
 def create_procedure(event, **extra_args):
+    user = event.created_by
     patient_details = {
         'patient_name': 'Test',  # Generates a random string of 6 characters
         'patient_surname': 'Patient',  # Generates a random string of 8 characters
@@ -86,7 +87,10 @@ def create_procedure(event, **extra_args):
         'ward': random.randint(1, 50)  # Assuming ward numbers range from 1 to 50
     }
     patient_details.update(extra_args)
-    procedure = Procedure.objects.create(event=event, **extra_args)
+    procedure = Procedure.objects.create(
+        created_by=user, event=event, **extra_args
+    )
+
     return procedure
 
 
@@ -177,4 +181,37 @@ def generate_random_product():
 
     product.save()
     return product
+
+def create_dummy_tray(code):
+    tray_type = TrayType.objects.create(
+            name='Test Tray Type',
+            description='A test tray type',
+    )
+
+    tray = Tray.objects.create(
+        code=code,
+        tray_type=tray_type,
+    )
+
+    return tray
+
+def create_procedures_buffed(alt_user=None):
+    u, h, d = create_random_entities()
+    if alt_user:
+        u = alt_user
+    e = create_event(u, d, h)
+    p = generate_random_patient_details()
+    procedure = create_procedure(e, **p)
+
+    return u, procedure
+
+def create_allocation(procedure, tray, created_by):
+    allocation = Allocation.objects.create(
+        procedure=procedure, 
+        tray=tray, 
+        created_by=created_by,
+    )
+    return allocation
+
+
 
