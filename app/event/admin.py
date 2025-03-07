@@ -1,11 +1,17 @@
 from django.contrib import admin
 
 from event.models import (
-    Event, Procedure, Allocation
+    Event, Procedure, Allocation,
+    Inventory, Usage, Order, OrderItem
 )
 
+class BaseAdminClass(admin.ModelAdmin):
+        readonly_fields = (
+            'created_by', 'updated_by', 'created_at', 'updated_at'
+        )
+
 @admin.register(Event)
-class EventAdmin (admin.ModelAdmin):
+class EventAdmin (BaseAdminClass):
     # Fields to display in the user list view
     list_display = (
         'doctor', 'hospital', 'description', 'created_by', 
@@ -14,10 +20,7 @@ class EventAdmin (admin.ModelAdmin):
         'created_by__firstname', 'created_by__surname', 
         'doctor__user__surname', 'description', 'hospital__name'
     )
-    readonly_fields = [
-        'created_by', 'created_at', 'updated_by', 'updated_at'
-    ]
-
+   
     def get_doctor(self, obj):
         """Return the first name of the associated user."""
         return f"Dr {obj.doctor.user.surname}"
@@ -32,7 +35,7 @@ class EventAdmin (admin.ModelAdmin):
 
 
 @admin.register(Procedure)
-class ProcedureAdmin(admin.ModelAdmin):
+class ProcedureAdmin(BaseAdminClass):
     list_display = (
         'patient_name', 'patient_surname', 'case_number',
         'get_doctor', 'get_hospital', 'created_at'
@@ -46,9 +49,6 @@ class ProcedureAdmin(admin.ModelAdmin):
         'patient_name', 'patient_surname', 'case_number',
         'event__doctor__user__surname', 'event__hospital', 
     )
-    readonly_fields = [
-        'created_by', 'created_at', 'updated_by', 'updated_at'
-    ]
 
     def get_hospital(self, obj):
         """Return the hospital associated with the procedure"""
@@ -74,13 +74,10 @@ class ProcedureAdmin(admin.ModelAdmin):
 
 
 @admin.register(Allocation)
-class AllocationAdmin(admin.ModelAdmin):
+class AllocationAdmin(BaseAdminClass):
     list_display = ('tray', 'created_by')
     search_fields = ('tray__code',)
     list_filter = ('created_by',)
-    readonly_fields = [
-        'created_by', 'created_at', 'updated_by', 'updated_at'
-    ]
     autocomplete_fields = ['tray']
     ordering = ('-created_at',)  # Newest allocations first
 
@@ -90,4 +87,32 @@ class AllocationAdmin(admin.ModelAdmin):
             obj.created_by = request.user
         obj.updated_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(Inventory)
+class InventoryAdmin(BaseAdminClass):
+    list_display = ('item', 'quantity', 'tray', 'created_at', 'created_by', 'updated_at', 'updated_by')
+    search_fields = ('item', 'tray__name')
+    list_filter = ('tray', 'created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(Usage)
+class UsageAdmin(BaseAdminClass):
+    list_display = ('item', 'quantity', 'allocation', 'created_at', 'created_by', 'updated_at', 'updated_by')
+    search_fields = ('item', 'allocation__procedure__case_number')
+    list_filter = ('allocation', 'created_at', 'updated_at')
+
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 1
+
+
+@admin.register(Order)
+class OrderAdmin(BaseAdminClass):
+    list_display = ('supplier', 'invoice', 'order_date', 'delivery_date', 'created_at', 'created_by', 'updated_at', 'updated_by')
+    search_fields = ('supplier', 'invoice')
+    list_filter = ('order_date', 'delivery_date', 'created_at', 'updated_at')
+    inlines = [OrderItemInline]
 

@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
 
-from core.models import Hospital, Tray, Doctor
+from core.models import Hospital, Tray, Doctor, Product
 
 
 class EventManager(models.Manager):
@@ -31,6 +31,7 @@ class Event(models.Model):
         on_delete=models.DO_NOTHING,
         related_name='events',
     )
+    date = models.DateField()
     description = models.TextField(null=True, blank=True)
     # Add additional fields for the Event model as needed
     created_at = models.DateTimeField(auto_now_add=True)
@@ -122,19 +123,39 @@ class Allocation(models.Model):
         return f"{self.tray} for {self.procedure}"
     
     def save(self, *args, **kwargs):
-        """Override save method to modify the updated_by field."""
+        """Override save method to modify the updated_by field and handle replenishment."""
         if 'request' in kwargs:
             self.updated_by = kwargs.pop('request').user
         super().save(*args, **kwargs)
+
+        if self.is_replenishment:
+            self.replenish_tray()
+
+    def replenish_tray(self):
+        """Replenish tray items from inventory."""
+        tray_items = Inventory.objects.filter(tray=self.tray)
+        for tray_item in tray_items:
+            inventory_item = Inventory.objects.filter(item=tray_item.item).first()
+            if inventory_item and inventory_item.quantity > 0:
+                replenish_quantity = min(inventory_item.quantity, tray_item.quantity)
+                tray_item.quantity += replenish_quantity
+                inventory_item.quantity -= replenish_quantity
+                tray_item.save()
+                inventory_item.save()
 
 
 class Inventory(models.Model):
     tray = models.ForeignKey(
         Tray,
         on_delete=models.CASCADE,
-        related_name='inventory'
+        related_name='inventory',
+        null=True
     )
-    item = models.CharField(max_length=255)
+    item = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='inventory_items'
+    )
     quantity = models.PositiveSmallIntegerField()
     created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     created_by = models.ForeignKey(
@@ -150,6 +171,9 @@ class Inventory(models.Model):
         null=True,
     )
 
+    class Meta:
+        verbose_name_plural = "Inventory"
+
     def __str__(self):
         return f"{self.item} - {self.quantity} in {self.tray}"
     
@@ -158,3 +182,108 @@ class Inventory(models.Model):
         if 'request' in kwargs:
             self.updated_by = kwargs.pop('request').user
         super().save(*args, **kwargs)
+
+
+class Usage(models.Model):
+    """Model to log items used in each allocation"""
+    allocation = models.ForeignKey(
+        Allocation,
+        on_delete=models.CASCADE,
+        related_name='usages'
+    )
+    item = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='usage_items'
+    )
+    quantity = models.PositiveSmallIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        get_user_model(), 
+        on_delete=models.DO_NOTHING,
+        related_name='usages',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        get_user_model(), 
+        on_delete=models.DO_NOTHING,
+        related_name='updated_usages',
+        null=True,
+    )
+
+    def __str__(self):
+        return f"{self.quantity} of {self.item} used in {self.allocation}"
+
+    def save(self, *args, **kwargs):
+        """Override save method to update tray item quantities and inventory."""
+        if 'request' in kwargs:
+            self.updated_by = kwargs.pop('request').user
+        
+        super().save(*args, **kwargs)
+
+        # Update tray item quantities
+        tray_inventory = Inventory.objects.filter(tray=self.allocation.tray, item=self.item).first()
+        if tray_inventory:
+            tray_inventory.quantity -= self.quantity
+            tray_inventory.save()
+
+        # Update inventory
+        inventory = Inventory.objects.filter(item=self.item).first()
+        if inventory:
+            inventory.quantity -= self.quantity
+            inventory.save()
+
+
+class Order(models.Model):
+    """Model to log new orders"""
+    supplier = models.CharField(max_length=255)
+    invoice = models.CharField(max_length=255, unique=True)
+    order_date = models.DateField()
+    delivery_date = models.DateField()
+    notes = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.DO_NOTHING,
+        related_name='orders',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.DO_NOTHING,
+        related_name='updated_orders',
+        null=True,
+    )
+
+    def __str__(self):
+        return f"Order #{self.invoice} from {self.supplier}"
+
+
+class OrderItem(models.Model):
+    """Model to represent items in an order"""
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    item = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='order_items'
+    )
+    quantity = models.PositiveSmallIntegerField()
+
+    def __str__(self):
+        return f"{self.quantity} of {self.item} in order {self.order.invoice}"
+
+    def save(self, *args, **kwargs):
+        """Override save method to update inventory quantities."""
+        super().save(*args, **kwargs)
+
+        # Update inventory
+        inventory, created = Inventory.objects.get_or_create(
+            item=self.item,
+            defaults={'quantity': 0}
+        )
+        inventory.quantity += self.quantity
+        inventory.save()
