@@ -20,6 +20,8 @@ from drf_spectacular.views import (
 )
 from django.contrib import admin
 from django.urls import path, include
+from django.conf.urls.static import static
+from django.conf import settings
 
 admin.site.site_header = 'PelluMed Administration Portal'
 admin.site.site_title = 'Admin Site'
@@ -36,3 +38,9 @@ urlpatterns = [
     path('api/user/', include('user.urls'), name='user'),
     path('api/event/', include('event.urls'), name='event')
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL, 
+        document_root=settings.MEDIA_ROOT
+    )
