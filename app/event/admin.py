@@ -10,6 +10,19 @@ class BaseAdminClass(admin.ModelAdmin):
             'created_by', 'updated_by', 'created_at', 'updated_at'
         )
 
+        def save_model(self, request, obj, form, change):
+            """Override save_model to set created_by to the current user."""
+            if not change or not obj.created_by:
+                obj.created_by = request.user
+            obj.updated_by = request.user
+            super().save_model(request, obj, form, change)
+
+class UsageInline(admin.TabularInline):
+    model = Usage
+    extra = 1
+    readonly_fields = ('created_by', 'updated_by', 'created_at', 'updated_at')
+
+    
 @admin.register(Event)
 class EventAdmin (BaseAdminClass):
     # Fields to display in the user list view
@@ -25,13 +38,6 @@ class EventAdmin (BaseAdminClass):
         """Return the first name of the associated user."""
         return f"Dr {obj.doctor.user.surname}"
     get_doctor.short_description = 'Doctor'
-
-    def save_model(self, request, obj, form, change):
-        """Override save_model to set created_by to the current user."""
-        if not change or not obj.created_by:
-            obj.created_by = request.user
-        obj.updated_by = request.user
-        super().save_model(request, obj, form, change)
 
 
 @admin.register(Procedure)
@@ -65,12 +71,6 @@ class ProcedureAdmin(BaseAdminClass):
         return f"Dr. {initial}. {surname}"
     get_doctor.short_description = 'Owned By'
     
-    def save_model(self, request, obj, form, change):
-        """Override save_model to set created_by to the current user."""
-        if not change or not obj.created_by:
-            obj.created_by = request.user
-        obj.updated_by = request.user
-        super().save_model(request, obj, form, change)
 
 
 @admin.register(Allocation)
@@ -80,13 +80,7 @@ class AllocationAdmin(BaseAdminClass):
     list_filter = ('created_by',)
     autocomplete_fields = ['tray']
     ordering = ('-created_at',)  # Newest allocations first
-
-    def save_model(self, request, obj, form, change):
-        """Override save_model to set created_by to the current user."""
-        if not change or not obj.created_by:
-            obj.created_by = request.user
-        obj.updated_by = request.user
-        super().save_model(request, obj, form, change)
+    inlines = [UsageInline]
 
 
 @admin.register(Inventory)
