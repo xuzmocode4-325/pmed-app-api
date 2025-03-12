@@ -26,9 +26,9 @@ ARG DEV=false
 # Create a virtual environment, install dependencies, and clean up
 RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
-    apk add --update --no-cache postgresql-client && \
+    apk add --update --no-cache postgresql-client jpeg-dev && \
     apk add --update --no-cache --virtual .tmp-build-deps \
-        build-base postgresql-dev musl-dev && \
+        build-base postgresql-dev musl-dev zlib zlib-dev linux-headers && \
     /py/bin/pip install -r /tmp/requirments.txt && \
     # If the DEV argument is true, install development dependencies
     if [ $DEV = "true" ]; \
@@ -41,10 +41,19 @@ RUN python -m venv /py && \
     adduser \
         --disabled-password \
         --no-create-home \ 
-        app-user
+        app-user && \
+    mkdir -p /vol/web/media && \
+    mkdir -p /vol/web/static && \
+    chown -R app-user:app-user /vol && \
+    chmod -R 755 /vol
+    
 
 # Update the PATH environment variable to include the virtual environment's bin directory
 ENV PATH="/py/bin:$PATH"
 
 # Switch to the non-root user for running the application
 USER app-user
+
+# Labels for inheriting pellumed API 
+LABEL org.opencontainers.image.source=https://github.com/xuzmocode4-325/pmed-app-api
+LABEL org.opencontainers.image.description="Pellumed API Image"
