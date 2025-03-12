@@ -6,3 +6,4 @@ djangorestframework-simplejwt[crypto]
 django-countries
 django-money
 django-phonenumber-field[phonenumbers]
+pillow>=11.1.0,<11.2
