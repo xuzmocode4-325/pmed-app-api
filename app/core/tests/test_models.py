@@ -1,22 +1,35 @@
 """
 Module for testing any models within the core app.
 """
+import os
+import tempfile
+from PIL import Image
+from unittest.mock import patch
 from decimal import Decimal
 from django.urls import reverse
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.db.utils import IntegrityError
+from datetime import timezone
 
 from core.models import (
     Hospital, Doctor, Product, 
     TrayType, TrayItem, Tray,
+    model_image_file_path, 
 )
 
 from event.models import (
     Event, Procedure, Allocation
 )
 
-from django_countries.fields import Country
+from event.tests.helper_for_event_tests import (
+    create_user, image_upload_url,
+    generate_random_product
+)
+
+from rest_framework import status
+from rest_framework.test import APIClient
+
 from phonenumber_field.modelfields import PhoneNumber
 
 
@@ -160,6 +173,7 @@ class ModelAdminTests(TestCase):
             created_by=self.user,
             doctor=self.doctor,
             hospital=self.hospital,
+            date='2025-03-27'
         )
 
         id = event.id
@@ -176,6 +190,7 @@ class ModelAdminTests(TestCase):
             created_by=self.user,
             doctor=self.doctor,
             hospital=self.hospital,
+            date='2025-03-27'
         )
 
         name = 'Test'
@@ -201,6 +216,7 @@ class ModelAdminTests(TestCase):
             created_by=self.user,
             doctor=self.doctor,
             hospital=self.hospital,
+            date='2025-03-27'
         ) 
 
         procedure = Procedure.objects.create(
@@ -222,6 +238,7 @@ class ModelAdminTests(TestCase):
             created_by=self.user,
             doctor=self.doctor,
             hospital=self.hospital,
+            date='2025-03-27'
         )   
 
         procedure = Procedure.objects.create(
@@ -239,6 +256,10 @@ class ModelAdminTests(TestCase):
 
     def test_create_product(self):
         """Test creating a product is successful"""
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as image_file:
+            img = Image.new('RGB', (10, 10))
+            img.save(image_file, format='JPEG')
+            
         product = Product.objects.create(
             catalogue_id=123456,
             profile=0.1,
@@ -311,6 +332,7 @@ class ModelAdminTests(TestCase):
             created_by=self.user,
             doctor=self.doctor,
             hospital=self.hospital,
+            date='2025-03-27'
         ) 
 
         procedure = Procedure.objects.create(
@@ -344,4 +366,45 @@ class ModelAdminTests(TestCase):
         self.assertEqual(allocation.created_by, self.user)
         self.assertEqual(allocation.procedure, procedure)
         self.assertEqual(allocation.tray, tray)
-     
+
+    @patch('core.models.uuid.uuid4')
+    def test_model_image_file_name_uuid(self, mock_uuid):
+        """Test generating image path"""
+
+        uuid = 'test-uuid'
+        mock_uuid.return_value = uuid
+        file_path = model_image_file_path(None, 'products', 'example.jpg')
+
+        self.assertEqual(file_path, f'uploads/products/{uuid}.jpg')
+        
+class ImageUploadTest(TestCase):
+    """Test for the image upload API"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_user(
+            email='john@example.com',
+            password='testytestpassword124'
+        )
+        self.client.force_authenticate(self.user)
+
+    def tearDown(self):
+        self.user.image.delete()
+
+    def test_upload_user_image(self):
+        """Test uploding an image to a recipe"""
+
+        url = image_upload_url('user', self.user.id)
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as image_file:
+            img = Image.new('RGB', (10, 10))
+            img.save(image_file, format='JPEG')
+            image_file.seek(0)
+            payload = {'image', image_file}
+            res = self.client.post(url, payload, format='multipart')
+
+        self.user.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('image', res.data)
+        self.assertTrue(os.path.exists(self.user.image.path))
+
+    
