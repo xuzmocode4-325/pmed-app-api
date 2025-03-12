@@ -1,7 +1,9 @@
 """
 Tests for the user API
 """
-
+import os
+import tempfile
+from PIL import Image
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -10,21 +12,17 @@ from rest_framework.test import APIClient
 from rest_framework import status
 
 from event.tests.helper_for_event_tests import (
-    create_user
+    create_user,
 )
 
 CREATE_USER_URL = reverse('user:create')
 TOKEN_URL = reverse('user:token')
 ME_URL = reverse('user:me')
+UPLOAD_IMAGE_URL = reverse('user:upload-image')
 
 def image_upload_url(model, id):
     """Create and return an image upload URL"""
     return reverse(f'{model}:{model}-upload-image', args=[id])
-
-
-def create_user(**params):
-    """Create and return a new user."""
-    return get_user_model().objects.create_user(**params)
 
 
 class PublicUserApiTest(TestCase):
@@ -38,7 +36,8 @@ class PublicUserApiTest(TestCase):
         payload = {
             'email': 'test@example.com',
             'password': 'testpass123',
-            'firstname': 'Test Name'
+            'firstname': 'Test',
+            'surname': 'User'
         }
 
         res = self.client.post(CREATE_USER_URL, payload)
@@ -53,7 +52,7 @@ class PublicUserApiTest(TestCase):
         payload = {
             'email': 'test@example.com',
             'password': 'testpass123',
-            'firstname': 'Test Name'
+            'firstname': 'Test'
         }
 
         create_user(**payload)
@@ -63,9 +62,9 @@ class PublicUserApiTest(TestCase):
     def test_password_too_short_error(self):
         """Test error is returned if password less than 5 chars."""
         payload = {
-            'email': 'test@example.com',
+            'email': 'test2@example.com',
             'password': 'test',
-            'firstname': 'Test Name'
+            'firstname': 'Test'
         }
 
         res = self.client.post(CREATE_USER_URL, payload)
@@ -78,21 +77,24 @@ class PublicUserApiTest(TestCase):
 
     def test_create_token_for_user(self):
         """Test generates token for valid credentials."""
-        user_details = {
-            'firstname': 'Test Name',
-            'email': 'test@example.com',
-            'password': 'user-pass-123'
+        user = {
+            'email': 'test5@example.com',
+            'password': 'test-pass123',
+            'firstname': 'Test',
+            'surname': 'User', 
         }
+        
+        create_user(**user)
 
-        create_user(**user_details)
         payload = {
-            'email': user_details['email'],
-            'password': user_details['password']
+            'email': user['email'],
+            'password':  user['password']
         }
 
         res = self.client.post(TOKEN_URL, payload)
-        self.assertIn('token', res.data)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('token', res.data)
+        
 
     def test_create_token_bad_credentials(self):
         """Test error returned for invalid credentials."""
@@ -178,11 +180,36 @@ class ImageUploadTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = create_user(
-            email='john@example.com',
-            password='testytestpassword124'
+        self.user = get_user_model().objects.create_user(
+            email='user@example.com',
+            password='testpass123',
+            firstname='Test',
+            surname='User'
         )
         self.client.force_authenticate(self.user)
 
     def tearDown(self):
-        self.recipe.image.delete()
+        self.user.image.delete()
+
+    def test_upload_image_to_user(self):
+        """Test uploading an image to user"""
+        url = UPLOAD_IMAGE_URL
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as ntf:
+            img = Image.new('RGB', (10, 10))
+            img.save(ntf, format='JPEG')
+            ntf.seek(0)
+            res = self.client.patch(url, {'image': ntf}, format='multipart')
+
+        self.user.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('image', res.data)
+        self.assertTrue(os.path.exists(self.user.image.path))
+
+    def test_upload_image_bad_request(self):
+        """Test uploading an invalid image"""
+        url = UPLOAD_IMAGE_URL
+        res = self.client.patch(url, {'image': 'notimage'}, format='multipart')
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+
