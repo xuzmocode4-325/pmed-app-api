@@ -1,7 +1,9 @@
 
 import random
 import string
+from datetime import timezone
 from decimal import Decimal 
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 from core.models import (
     Doctor, Hospital, Product, TrayType, TrayItem, Tray
@@ -67,6 +69,7 @@ def create_event(created_by, doctor, hospital, **params):
         created_by=created_by,
         doctor=doctor,
         hospital=hospital,
+        date='2025-03-27'
     )
     return event
 
@@ -213,5 +216,7 @@ def create_allocation(procedure, tray, created_by):
     )
     return allocation
 
-
+def image_upload_url(model, id):
+    """Create and return an image upload URL"""
+    return reverse(f'{model}:{model}-upload-image', args=[id])
 
