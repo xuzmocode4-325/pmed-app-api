@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from core.models import Hospital, Tray, Doctor, Product
 
 
-class EventManager(models.Manager):
+class EventFlowManager(models.Manager):
     def create_event(self, user, **kwargs):
         """Create an event with the created_by field set to the user."""
         kwargs['created_by'] = user
@@ -42,7 +42,7 @@ class Event(models.Model):
         related_name='modified_events',
         null=True
     )
-    objects = EventManager()
+    objects = EventFlowManager()
 
     def clean(self):
         """Override clean method to validate hospital field."""
@@ -55,6 +55,12 @@ class Event(models.Model):
         doc_surname = self.doctor.user.surname
         hospital = self.hospital.name
         return f"Event #{id}: Dr. {doc_surname} @{hospital}"
+    
+    def save(self, *args, **kwargs):
+        """Override save method to modify the updated_by field and handle replenishment."""
+        if 'request' in kwargs:
+            self.updated_by = kwargs.pop('request').user
+        super().save(*args, **kwargs)
 
 
 class Procedure(models.Model):
@@ -86,11 +92,19 @@ class Procedure(models.Model):
         null=True,
     )
 
+    objects = EventFlowManager()
+
     def __str__(self):
         case_ = self.case_number
         name = self.patient_name[0] 
         surname = self.patient_surname
-        return f"Case #{case_}: {name}. {surname}"        
+        return f"Case #{case_}: {name}. {surname}"    
+
+    def save(self, *args, **kwargs):
+        """Override save method to modify the updated_by field and handle replenishment."""
+        if 'request' in kwargs:
+            self.updated_by = kwargs.pop('request').user
+        super().save(*args, **kwargs)    
 
 
 class Allocation(models.Model):
@@ -119,6 +133,8 @@ class Allocation(models.Model):
         null=True,
     )
 
+    objects = EventFlowManager()
+
     def __str__(self):
         return f"{self.tray} for {self.procedure}"
     
@@ -127,7 +143,7 @@ class Allocation(models.Model):
         if 'request' in kwargs:
             self.updated_by = kwargs.pop('request').user
         super().save(*args, **kwargs)
-
+    
         if self.is_replenishment:
             self.replenish_tray()
 
@@ -177,11 +193,14 @@ class Inventory(models.Model):
     def __str__(self):
         return f"{self.item} - {self.quantity} in {self.tray}"
     
+    objects = EventFlowManager()
+    
     def save(self, *args, **kwargs):
         """Override save method to modify the updated_by field."""
         if 'request' in kwargs:
             self.updated_by = kwargs.pop('request').user
         super().save(*args, **kwargs)
+
 
 
 class Usage(models.Model):
@@ -210,6 +229,8 @@ class Usage(models.Model):
         related_name='updated_usages',
         null=True,
     )
+
+    objects = EventFlowManager()
 
     def __str__(self):
         return f"{self.quantity} of {self.item} used in {self.allocation}"
@@ -254,6 +275,8 @@ class Order(models.Model):
         related_name='updated_orders',
         null=True,
     )
+
+    objects = EventFlowManager()
 
     def __str__(self):
         return f"Order #{self.invoice} from {self.supplier}"
