@@ -26,14 +26,16 @@ class IsAuthorized(permissions.BasePermission):
             return True
 
         return False
-        
+   
 
 class EventViewSet(viewsets.ModelViewSet):
     """View for event API management"""
     serializer_class = serializers.EventDetailSerializer
     queryset = Event.objects.all()
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthorized]
+   
 
     def get_queryset(self):
         """Retrieve events for authenticated users"""
@@ -55,13 +57,15 @@ class EventViewSet(viewsets.ModelViewSet):
 
 
 class BaseEventExtensionModel( 
+    viewsets.GenericViewSet,
     mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
     mixins.ListModelMixin,
-    viewsets.GenericViewSet):
+    ):
 
-    autentication_classes = [TokenAuthentication]
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthorized]
+
 
     def perform_create(self, serializer):
         """Create new allocation"""
@@ -69,7 +73,7 @@ class BaseEventExtensionModel(
 
 
 class ProcedureViewSet(BaseEventExtensionModel):
-    
+    """View for procedure API management"""
     serializer_class = serializers.ProcedureSerializer
     queryset = Procedure.objects.all()
 
