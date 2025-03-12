@@ -1,6 +1,9 @@
 """
 Database models.
 """
+import os
+import uuid
+from functools import partial
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth import get_user_model
@@ -13,6 +16,13 @@ from django.contrib.auth.models import (
 
 from phonenumber_field.modelfields import PhoneNumberField
 from django_countries.fields import CountryField
+
+def model_image_file_path(instance, model, filename):
+    """Generate file path for new recipe image"""
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}{ext}'
+
+    return os.path.join('uploads', model, filename)
 
 
 class UserManager(BaseUserManager):
@@ -89,6 +99,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     phone_number = PhoneNumberField(null=True, blank=True)
+    image = models.ImageField(
+        null=True, 
+        upload_to=partial(model_image_file_path, model='user')
+    )
    
     objects = UserManager()
 
@@ -167,6 +181,10 @@ class Product(models.Model):
     description = models.TextField()
     base_price = models.DecimalField(max_digits=8, decimal_places=2)
     vat_price = models.DecimalField(max_digits=8, decimal_places=2)
+    image = models.ImageField(
+        null=True, 
+        upload_to=partial(model_image_file_path, model='product')
+    )
 
 
     def get_digimed(self):
