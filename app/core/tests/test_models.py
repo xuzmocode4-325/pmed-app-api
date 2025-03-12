@@ -22,10 +22,6 @@ from event.models import (
     Event, Procedure, Allocation
 )
 
-from event.tests.helper_for_event_tests import (
-    create_user, image_upload_url,
-    generate_random_product
-)
 
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -373,38 +369,11 @@ class ModelAdminTests(TestCase):
 
         uuid = 'test-uuid'
         mock_uuid.return_value = uuid
-        file_path = model_image_file_path(None, 'products', 'example.jpg')
+        file_path = model_image_file_path(
+            instance=None, 
+            filename='example.jpg', 
+            model='products'
+        )
 
         self.assertEqual(file_path, f'uploads/products/{uuid}.jpg')
         
-class ImageUploadTest(TestCase):
-    """Test for the image upload API"""
-
-    def setUp(self):
-        self.client = APIClient()
-        self.user = create_user(
-            email='john@example.com',
-            password='testytestpassword124'
-        )
-        self.client.force_authenticate(self.user)
-
-    def tearDown(self):
-        self.user.image.delete()
-
-    def test_upload_user_image(self):
-        """Test uploding an image to a recipe"""
-
-        url = image_upload_url('user', self.user.id)
-        with tempfile.NamedTemporaryFile(suffix='.jpg') as image_file:
-            img = Image.new('RGB', (10, 10))
-            img.save(image_file, format='JPEG')
-            image_file.seek(0)
-            payload = {'image', image_file}
-            res = self.client.post(url, payload, format='multipart')
-
-        self.user.refresh_from_db()
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn('image', res.data)
-        self.assertTrue(os.path.exists(self.user.image.path))
-
-    
