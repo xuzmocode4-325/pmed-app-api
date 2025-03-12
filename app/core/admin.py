@@ -1,13 +1,15 @@
 """
 Django admin customisation
 """
+
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils.translation import gettext_lazy as _
+
 from core.models import (
     User, Hospital, Doctor, 
     Product, TrayType, TrayItem, Tray
 )
-from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.utils.translation import gettext_lazy as _
 
 
 @admin.register(User)
@@ -167,3 +169,4 @@ class TrayAdmin(admin.ModelAdmin):
     list_filter = ('tray_type',)
     autocomplete_fields = ['tray_type']
     ordering = ('code',)
+    
