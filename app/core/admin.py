@@ -19,7 +19,7 @@ class CustomUserAdmin(BaseUserAdmin):
     # Fields to display in the user list view
     list_display = (
         'email', 'firstname', 'surname',
-        'is_active', 'is_staff'
+        'is_active', 'is_staff',
     )
     
     # Filters available in the user list view
@@ -37,7 +37,7 @@ class CustomUserAdmin(BaseUserAdmin):
     # Fieldsets for the user detail view
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('firstname', 'surname', 'phone_number')}),
+        ('Personal info', {'fields': ('firstname', 'surname', 'phone_number', 'image')}),
         ('Permissions', {'fields': (
             'is_active',
             'is_staff',
@@ -169,4 +169,3 @@ class TrayAdmin(admin.ModelAdmin):
     list_filter = ('tray_type',)
     autocomplete_fields = ['tray_type']
     ordering = ('code',)
-    
