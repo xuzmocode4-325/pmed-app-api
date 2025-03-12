@@ -1,12 +1,12 @@
 """
 Views for the user API
 """
-
 from rest_framework import generics, authentication, permissions
 from rest_framework.settings import api_settings
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.parsers import MultiPartParser, FormParser
 
-from .serializers import UserSerializer, AuthTokenSerializer
+from .serializers import UserSerializer, AuthTokenSerializer, UserImageSerializer
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -28,4 +28,15 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         """Retrieve and return the authenticated user."""
+        return self.request.user
+
+
+class UserImageUploadView(generics.UpdateAPIView):
+    """View for uploading user images"""
+    serializer_class = UserImageSerializer
+    parser_classes = (MultiPartParser, FormParser)
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
         return self.request.user
