@@ -129,6 +129,7 @@ class VerifiedDoctorEventApiTests(TestCase):
             'doctor': int(self.doctor.id),
             'description': '4 procedures',
             'hospital': int(self.hospital.id),
+            'date': '2025-03-27'
         }
 
         res = self.client.post(EVENTS_URL, payload)
@@ -137,7 +138,11 @@ class VerifiedDoctorEventApiTests(TestCase):
         event = Event.objects.get(id=res.data['id'])
         for k, v in payload.items():
             if k in ['doctor', 'hospital']:
-                self.assertEqual(getattr(event, k).id, v)  # Compare Doctor IDs
+                self.assertEqual(getattr(event, k).id, v) # Compare Doctor IDs
+            elif k == "date":
+                self.assertEqual(
+                    getattr(event, k).strftime('%Y-%m-%d'),
+                v) # Compare Date Strings 
             else:
                 self.assertEqual(getattr(event, k), v)
         self.assertEqual(event.created_by, self.user)
