@@ -59,7 +59,7 @@ class EventSerializer(GenericCustomSerializer):
     class Meta(GenericCustomSerializer.Meta):
         model = Event
         fields = [
-            'id', 'doctor', 'hospital', 'created_at', 
+            'id', 'doctor', 'date', 'hospital', 'created_at', 
             'updated_at', 'created_by', 'updated_by',
         ]
 
