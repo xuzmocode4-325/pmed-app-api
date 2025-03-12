@@ -9,9 +9,17 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 
+from event.tests.helper_for_event_tests import (
+    create_user
+)
+
 CREATE_USER_URL = reverse('user:create')
 TOKEN_URL = reverse('user:token')
 ME_URL = reverse('user:me')
+
+def image_upload_url(model, id):
+    """Create and return an image upload URL"""
+    return reverse(f'{model}:{model}-upload-image', args=[id])
 
 
 def create_user(**params):
@@ -163,3 +171,18 @@ class PrivateUserApiTest(TestCase):
         self.assertEqual(self.user.firstname, payload['firstname'])
         self.assertTrue(self.user.check_password(payload['password']))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+
+class ImageUploadTest(TestCase):
+    """Test for the image upload API"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_user(
+            email='john@example.com',
+            password='testytestpassword124'
+        )
+        self.client.force_authenticate(self.user)
+
+    def tearDown(self):
+        self.recipe.image.delete()
