@@ -17,7 +17,7 @@ from django.contrib.auth.models import (
 from phonenumber_field.modelfields import PhoneNumberField
 from django_countries.fields import CountryField
 
-def model_image_file_path(instance, model, filename):
+def model_image_file_path(instance, filename, model=None):
     """Generate file path for new recipe image"""
     ext = os.path.splitext(filename)[1]
     filename = f'{uuid.uuid4()}{ext}'
@@ -101,6 +101,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone_number = PhoneNumberField(null=True, blank=True)
     image = models.ImageField(
         null=True, 
+        blank=True,
         upload_to=partial(model_image_file_path, model='user')
     )
    
