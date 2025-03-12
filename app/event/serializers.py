@@ -14,6 +14,34 @@ class GenericCustomSerializer(serializers.ModelSerializer):
             'id', 'created_at', 'updated_at', 'created_by', 'updated_by'
         ]
 
+    def validate(self, attrs):
+        """Ensure that only verified doctors can be associated with events, procedures, or allocations."""
+        user = self.context['request'].user
+        doctor = attrs.get('doctor')
+
+        if doctor and not doctor.is_verified:
+            raise serializers.ValidationError(
+                "The doctor must be verified to be associated with an event, procedure, or allocation."
+            )
+
+        # Inside the validate method
+        if not user.is_staff:
+            if self.instance is None:  # Creating a new entry
+                doctor_instance = get_object_or_404(Doctor, user=user)
+                if doctor is None or doctor != doctor_instance:
+                    raise serializers.ValidationError(
+                        "You can only create entries for your own profile."
+                    )
+            else:  # Updating an existing entry
+                existing_doctor = getattr(self.instance, 'doctor', None)
+                if existing_doctor and doctor: 
+                    if doctor != existing_doctor:
+                        raise serializers.ValidationError(
+                            "You are not authorized to perform this action."
+                        )
+
+        return attrs
+
 
     def create(self, validated_data):
         """Create a new entry and set the created_by field to the authenticated user."""
@@ -62,35 +90,6 @@ class EventSerializer(GenericCustomSerializer):
             'id', 'doctor', 'date', 'hospital', 'created_at', 
             'updated_at', 'created_by', 'updated_by',
         ]
-
-    def validate(self, attrs):
-        """Ensure that only verified doctors can be associated with events, procedures, or allocations."""
-        user = self.context['request'].user
-        doctor = attrs.get('doctor')
-
-        if doctor and not doctor.is_verified:
-            raise serializers.ValidationError(
-                "The doctor must be verified to be associated with an event, procedure, or allocation."
-            )
-
-        # Inside the validate method
-        if not user.is_staff:
-            if self.instance is None:  # Creating a new entry
-                doctor_instance = get_object_or_404(Doctor, user=user)
-                if doctor is None or doctor != doctor_instance:
-                    raise serializers.ValidationError(
-                        "You can only create entries for your own profile."
-                    )
-            else:  # Updating an existing entry
-                existing_doctor = getattr(self.instance, 'doctor', None)
-                if existing_doctor and doctor: 
-                    if doctor != existing_doctor:
-                        raise serializers.ValidationError(
-                            "You are not authorized to perform this action."
-                        )
-
-        return attrs
-        
 
 class EventDetailSerializer(EventSerializer):
     """Serializer for event detail view"""
