@@ -7,7 +7,6 @@ from django.contrib.auth import (
     authenticate
 )
 from django.utils.translation import gettext as _
-
 from rest_framework import serializers
 # from rest_framework.authtoken.models import Token
 
@@ -64,6 +63,28 @@ class UserSerializer(serializers.ModelSerializer):
 
         return user
 
+
+class UserImageSerializer(serializers.ModelSerializer):
+    """Serializer for uploading images to users"""
+
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'image']
+        read_only_fields = ['id']
+        extra_kwargs ={'image': { 'required': True }}
+
+    def update(self, instance, validated_data):
+        """Update the instance with the validated data"""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+    def delete(self, instance):
+        """Delete the instance"""
+        instance.delete()
+        return instance
+    
 
 class AuthTokenSerializer(serializers.Serializer):
     """Serializer for the auth user token."""
