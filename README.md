@@ -1,4 +1,4 @@
-# Pellumed Admin App API 
+# Medical Equipment Sales Admin API 
 
 ## Dockerfile Specs:
 *   `FROM python:3.13-alpine3.21` -  This instruction sets the base image for the Docker image to `python:3.13-alpine3.21`. This image is a lightweight Linux distribution based on Alpine Linux, with Python 3.13 pre-installed.
