@@ -11,9 +11,6 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from event.tests.helper_for_event_tests import (
-    create_user,
-)
 
 CREATE_USER_URL = reverse('user:create')
 TOKEN_URL = reverse('user:token')
@@ -55,7 +52,8 @@ class PublicUserApiTest(TestCase):
             'firstname': 'Test'
         }
 
-        create_user(**payload)
+        get_user_model().objects.create_user(**payload)
+
         res = self.client.post(CREATE_USER_URL, payload)
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -77,18 +75,18 @@ class PublicUserApiTest(TestCase):
 
     def test_create_token_for_user(self):
         """Test generates token for valid credentials."""
-        user = {
+        user_details = {
             'email': 'test5@example.com',
             'password': 'test-pass123',
             'firstname': 'Test',
             'surname': 'User', 
         }
         
-        create_user(**user)
+        get_user_model().objects.create_user(**user_details)
 
         payload = {
-            'email': user['email'],
-            'password':  user['password']
+            'email': user_details['email'],
+            'password':  user_details['password']
         }
 
         res = self.client.post(TOKEN_URL, payload)
@@ -103,7 +101,13 @@ class PublicUserApiTest(TestCase):
             'email': 'test@example.com',
             'password': 'goodpass'
         }
-        create_user(**user_details)
+        
+        get_user_model().objects.create_user(**user_details)
+
+        payload = {
+            'email': user_details['email'],
+            'password':  user_details['password']
+        }
 
         payload = {
             'email': user_details['email'],
@@ -136,7 +140,7 @@ class PrivateUserApiTest(TestCase):
 
     def setUp(self):
         """Set test client and auth user for private API tests."""
-        self.user = create_user(
+        self.user = get_user_model().objects.create_user(
             email='test@example.com',
             password='examplepass123',
             firstname='Test',
